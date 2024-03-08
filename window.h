@@ -120,10 +120,10 @@ private:
 	int PosY;
 	std::queue<MouseEvent> MouseQueue;
 	// Graphics ------------------------------------
-	std::wstring lol;
+	std::wstring fpsInfo;
 	std::wstring WindowName;
-	TimePoint last;
 	TimePoint old;
+	unsigned int fpsTick;
 	std::vector<RegisteredObject> resizableObjects;
 };
 

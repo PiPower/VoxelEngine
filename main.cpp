@@ -5,7 +5,7 @@ void processUserInput(Camera* cam, Window* window);
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
-	Window window(1600, 900, L"test", L"NES emulator");
+	Window window(1600, 900, L"test", L"Voxel world");
 	ChunkRenderer renderer(window.GetWindowHWND());
 	Chunk* chunk = CreateChunk(&renderer);
 	Camera* cam = CreateCamera(&renderer, { 0,0,-2.5 }, { 0,0,1 }, { 0,1,0 });

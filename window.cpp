@@ -36,23 +36,29 @@ Window::Window(int width, int height, std::wstring CLassName, std::wstring WndNa
 
 
 	ShowWindow(hwnd, SW_SHOWDEFAULT);
-
 	KeyStates.reset();
+
+	old = high_resolution_clock::now();
+	fpsTick = 0;
 }
 
 int Window::ProcessMessages() noexcept
 {
 	MSG msg;
+	const duration<float> frameTime = high_resolution_clock::now() - old;
+	float frameInterval = frameTime.count();
+	if (frameInterval > 1.0)
+	{
+		old = high_resolution_clock::now();
 
-	const auto old = last;
-	last = steady_clock::now();
-	const duration<float> frameTime = last - old;
+		fpsInfo.clear();
 
-	int FPS = 1 / frameTime.count();
-	lol.clear();
+		fpsInfo = WindowName + L" FPS: " + to_wstring(fpsTick);
+		SetWindowText(hwnd, fpsInfo.c_str());
 
-	lol = WindowName + L" FPS: " + to_wstring(FPS);
-	SetWindowText(hwnd, lol.c_str());
+		fpsTick = 0;
+	}
+	fpsTick++;
 	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 	{
 
@@ -80,9 +86,9 @@ void Window::SetFPS()
 
 		if (e.Type == MouseEvent::Event::Move)
 		{
-			lol = L"(" + to_wstring(e.x) + L',' + to_wstring(e.y) + L')' + L"(" +
+			fpsInfo = L"(" + to_wstring(e.x) + L',' + to_wstring(e.y) + L')' + L"(" +
 				to_wstring(GetMousePosXNormalized()) + L', ' + to_wstring(GetMousePosYNormalized());
-			SetWindowText(hwnd, lol.c_str());
+			SetWindowText(hwnd, fpsInfo.c_str());
 		}
 
 	}
