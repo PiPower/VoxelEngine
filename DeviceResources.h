@@ -42,7 +42,7 @@ public:
 protected:
 	void CreateCommandAllocatorListQueue();
 	void CreateDescriptorHeaps();
-	virtual void Resize(HWND hwnd);
+	void Resize(HWND hwnd);
 	void CreateSwapChain(HWND hwnd);
 protected:
 	ComPtr<IDXGIFactory4> factory;

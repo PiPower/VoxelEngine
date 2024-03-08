@@ -10,6 +10,7 @@ public:
 	void StartRecording();
 	void DrawChunk(Chunk* chunk);
 	void StopRecording();
+	static void Resize(HWND hwnd, void* renderer);
 protected:
 	void CompileShaders();
 	void CreateRootSignature();

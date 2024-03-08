@@ -12,6 +12,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	renderer.BindCamera(cam);
 
 	UpdateGpuMemory(chunk);
+	window.RegisterResizezable(&renderer, ChunkRenderer::Resize);
 	while (window.ProcessMessages() == 0)
 	{
 		renderer.StartRecording();

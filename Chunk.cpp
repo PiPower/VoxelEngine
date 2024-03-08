@@ -34,7 +34,7 @@ Chunk* CreateChunk(DeviceResources* device)
 
 void UpdateGpuMemory(Chunk* chunk)
 {
-    Vertex buffer[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTEX_PER_CUBE];
+    Vertex* buffer = new Vertex[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTEX_PER_CUBE];
     //create voxel mesh
     for (int z = 0; z < BLOCK_COUNT_Z; z++)
     {
@@ -91,8 +91,9 @@ void UpdateGpuMemory(Chunk* chunk)
         }
     }
     memcpy(chunk->vertexMap, buffer, chunk->vertexView.SizeInBytes);
+    delete[] buffer;
     //create index buffer
-    unsigned int cube_indicies[INDEX_PER_CUBE * BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z] = {};
+    unsigned int* cube_indicies = new unsigned int[INDEX_PER_CUBE * BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z];
     for (int z = 0; z < BLOCK_COUNT_Z; z++)
     {
         for (int y = 0; y < BLOCK_COUNT_Y; y++)
@@ -102,15 +103,62 @@ void UpdateGpuMemory(Chunk* chunk)
                 unsigned int vertex_offset = VERTEX_PER_CUBE * (z * BLOCK_COUNT_Z * BLOCK_COUNT_Y + y * BLOCK_COUNT_X + x);
                 unsigned int index_offset = INDEX_PER_CUBE * (z * BLOCK_COUNT_Z * BLOCK_COUNT_Y + y * BLOCK_COUNT_X + x);
 
-                cube_indicies[index_offset + 0] = vertex_offset;
+                //front face
+                cube_indicies[index_offset + 0] = vertex_offset + 0;
                 cube_indicies[index_offset + 1] = vertex_offset + 1;
                 cube_indicies[index_offset + 2] = vertex_offset + 2;
 
                 cube_indicies[index_offset + 3] = vertex_offset + 1;
                 cube_indicies[index_offset + 4] = vertex_offset + 3;
                 cube_indicies[index_offset + 5] = vertex_offset + 2;
+
+                //right face 
+                cube_indicies[index_offset + 6] = vertex_offset + 1;
+                cube_indicies[index_offset + 7] = vertex_offset + 5;
+                cube_indicies[index_offset + 8] = vertex_offset + 3;
+
+                cube_indicies[index_offset + 9] = vertex_offset + 5;
+                cube_indicies[index_offset + 10] = vertex_offset + 7;
+                cube_indicies[index_offset + 11] = vertex_offset + 3;
+
+                //left face
+                cube_indicies[index_offset + 12] = vertex_offset + 4;
+                cube_indicies[index_offset + 13] = vertex_offset + 0;
+                cube_indicies[index_offset + 14] = vertex_offset + 6;
+
+                cube_indicies[index_offset + 15] = vertex_offset + 0;
+                cube_indicies[index_offset + 16] = vertex_offset + 2;
+                cube_indicies[index_offset + 17] = vertex_offset + 6;
+
+                //top face
+                cube_indicies[index_offset + 18] = vertex_offset + 0;
+                cube_indicies[index_offset + 19] = vertex_offset + 4;
+                cube_indicies[index_offset + 20] = vertex_offset + 5;
+
+                cube_indicies[index_offset + 21] = vertex_offset + 0;
+                cube_indicies[index_offset + 22] = vertex_offset + 5;
+                cube_indicies[index_offset + 23] = vertex_offset + 1;
+                
+                //bottom face
+                cube_indicies[index_offset + 24] = vertex_offset + 2;
+                cube_indicies[index_offset + 25] = vertex_offset + 7;
+                cube_indicies[index_offset + 26] = vertex_offset + 6;
+
+                cube_indicies[index_offset + 27] = vertex_offset + 2;
+                cube_indicies[index_offset + 28] = vertex_offset + 3;
+                cube_indicies[index_offset + 29] = vertex_offset + 7;
+
+                //back face
+                cube_indicies[index_offset + 30] = vertex_offset + 6;
+                cube_indicies[index_offset + 31] = vertex_offset + 5;
+                cube_indicies[index_offset + 32] = vertex_offset + 4;
+
+                cube_indicies[index_offset + 33] = vertex_offset + 7;
+                cube_indicies[index_offset + 34] = vertex_offset + 5;
+                cube_indicies[index_offset + 35] = vertex_offset + 6;
             }
         }
     }
     memcpy(chunk->indexMap, cube_indicies, chunk->indexView.SizeInBytes);
+    delete[] cube_indicies;
 }

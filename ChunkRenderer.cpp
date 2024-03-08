@@ -79,6 +79,12 @@ void ChunkRenderer::StopRecording()
 	Synchronize();
 }
 
+void ChunkRenderer::Resize(HWND hwnd, void* renderer)
+{
+	ChunkRenderer* chunkRenderer = (ChunkRenderer*)renderer;
+	chunkRenderer->DeviceResources::Resize(hwnd);
+}
+
 void ChunkRenderer::CompileShaders()
 {
 	ComPtr<ID3DBlob> error;

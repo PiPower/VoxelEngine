@@ -3,16 +3,16 @@
 #include "DeviceResources.h"
 #pragma once
 
-#define BLOCK_COUNT_X 10
-#define BLOCK_COUNT_Y 10
-#define BLOCK_COUNT_Z 1
+#define BLOCK_COUNT_X 17
+#define BLOCK_COUNT_Y 17
+#define BLOCK_COUNT_Z 17
 
 #define VERTEX_COUNT_X (BLOCK_COUNT_X + 1)
 #define VERTEX_COUNT_Y (BLOCK_COUNT_Y + 1)
 #define VERTEX_COUNT_Z (BLOCK_COUNT_Z + 1)
 
 #define VERTEX_PER_CUBE 8
-#define INDEX_PER_CUBE 6
+#define INDEX_PER_CUBE 36
 using namespace  Microsoft::WRL;
 enum class BlockType
 {
