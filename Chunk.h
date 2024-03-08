@@ -3,9 +3,9 @@
 #include "DeviceResources.h"
 #pragma once
 
-#define BLOCK_COUNT_X 17
-#define BLOCK_COUNT_Y 17
-#define BLOCK_COUNT_Z 17
+#define BLOCK_COUNT_X 16
+#define BLOCK_COUNT_Y 16
+#define BLOCK_COUNT_Z 16
 
 #define VERTEX_COUNT_X (BLOCK_COUNT_X + 1)
 #define VERTEX_COUNT_Y (BLOCK_COUNT_Y + 1)
@@ -16,7 +16,7 @@
 using namespace  Microsoft::WRL;
 enum class BlockType
 {
-	none,
+	air,
 	grass
 };
 
@@ -42,4 +42,5 @@ struct Chunk
 };
 
 Chunk* CreateChunk(DeviceResources* device);
+BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned int z);
 void UpdateGpuMemory(Chunk * chunk);

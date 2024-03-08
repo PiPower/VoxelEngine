@@ -32,19 +32,40 @@ Chunk* CreateChunk(DeviceResources* device)
     return newChunk;
 }
 
+BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned int z)
+{
+    return chunk->blockGrid[z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x];
+}
+
 void UpdateGpuMemory(Chunk* chunk)
 {
     Vertex* buffer = new Vertex[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTEX_PER_CUBE];
     //create voxel mesh
+    unsigned int total_blocks = 0;
+
+
     for (int z = 0; z < BLOCK_COUNT_Z; z++)
     {
         for (int y = 0; y < BLOCK_COUNT_Y; y++)
         {
             for (int x = 0; x < BLOCK_COUNT_X; x++)
             {
-                Vertex vertex = {};
-                unsigned int block_index = VERTEX_PER_CUBE * (z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x);
 
+                Vertex vertex = {};
+                unsigned int block_index = VERTEX_PER_CUBE * total_blocks;
+                bool xAxisShown = (x < BLOCK_COUNT_X - 1 ? GetBlockType(chunk, x + 1, y, z) == BlockType::air : true)
+                    || (x > 0 ? GetBlockType(chunk, x - 1, y, z) == BlockType::air : true);
+
+                bool yAxisShown = (y < BLOCK_COUNT_Y - 1 ? GetBlockType(chunk, x, y + 1, z) == BlockType::air : true)
+                    || (y > 0 ? GetBlockType(chunk, x, y - 1, z) == BlockType::air : true);
+
+                bool zAxisShown = (z < BLOCK_COUNT_Z - 1 ? GetBlockType(chunk, x, y, z + 1) == BlockType::air : true)
+                    || (z > 0 ? GetBlockType(chunk, x, y, z - 1) == BlockType::air : true);
+
+                if (!(xAxisShown || yAxisShown || zAxisShown))
+                {
+                    continue;
+                }
                 //front of cube ----------------------------------------------------------
                 vertex.x = -1.0f + 2.0f * x / BLOCK_COUNT_X;
                 vertex.y = 1.0f - 2.0f * y / BLOCK_COUNT_Y;
@@ -86,79 +107,79 @@ void UpdateGpuMemory(Chunk* chunk)
                 vertex.z = -1.0f + 2.0f * (z + 1) / BLOCK_COUNT_Z;
                 buffer[block_index + 7] = vertex;
 
-
+                total_blocks++;
             }
         }
     }
+    chunk->vertexView.SizeInBytes = total_blocks * VERTEX_PER_CUBE * sizeof(Vertex);
     memcpy(chunk->vertexMap, buffer, chunk->vertexView.SizeInBytes);
     delete[] buffer;
     //create index buffer
     unsigned int* cube_indicies = new unsigned int[INDEX_PER_CUBE * BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z];
-    for (int z = 0; z < BLOCK_COUNT_Z; z++)
+    unsigned int storedBlockIndicies = 0;
+    for (int block = 0; block < total_blocks; block++)
     {
-        for (int y = 0; y < BLOCK_COUNT_Y; y++)
-        {
-            for (int x = 0; x < BLOCK_COUNT_X; x++)
-            {
-                unsigned int vertex_offset = VERTEX_PER_CUBE * (z * BLOCK_COUNT_Z * BLOCK_COUNT_Y + y * BLOCK_COUNT_X + x);
-                unsigned int index_offset = INDEX_PER_CUBE * (z * BLOCK_COUNT_Z * BLOCK_COUNT_Y + y * BLOCK_COUNT_X + x);
+       
+        unsigned int vertex_offset = VERTEX_PER_CUBE * block;
+        unsigned int index_offset = INDEX_PER_CUBE * storedBlockIndicies;
+        storedBlockIndicies++;
+        //front face
+        cube_indicies[index_offset + 0] = vertex_offset + 0;
+        cube_indicies[index_offset + 1] = vertex_offset + 1;
+        cube_indicies[index_offset + 2] = vertex_offset + 2;
 
-                //front face
-                cube_indicies[index_offset + 0] = vertex_offset + 0;
-                cube_indicies[index_offset + 1] = vertex_offset + 1;
-                cube_indicies[index_offset + 2] = vertex_offset + 2;
+        cube_indicies[index_offset + 3] = vertex_offset + 1;
+        cube_indicies[index_offset + 4] = vertex_offset + 3;
+        cube_indicies[index_offset + 5] = vertex_offset + 2;
 
-                cube_indicies[index_offset + 3] = vertex_offset + 1;
-                cube_indicies[index_offset + 4] = vertex_offset + 3;
-                cube_indicies[index_offset + 5] = vertex_offset + 2;
+        //right face 
+        cube_indicies[index_offset + 6] = vertex_offset + 1;
+        cube_indicies[index_offset + 7] = vertex_offset + 5;
+        cube_indicies[index_offset + 8] = vertex_offset + 3;
 
-                //right face 
-                cube_indicies[index_offset + 6] = vertex_offset + 1;
-                cube_indicies[index_offset + 7] = vertex_offset + 5;
-                cube_indicies[index_offset + 8] = vertex_offset + 3;
+        cube_indicies[index_offset + 9] = vertex_offset + 5;
+        cube_indicies[index_offset + 10] = vertex_offset + 7;
+        cube_indicies[index_offset + 11] = vertex_offset + 3;
 
-                cube_indicies[index_offset + 9] = vertex_offset + 5;
-                cube_indicies[index_offset + 10] = vertex_offset + 7;
-                cube_indicies[index_offset + 11] = vertex_offset + 3;
+        //left face
+        cube_indicies[index_offset + 12] = vertex_offset + 4;
+        cube_indicies[index_offset + 13] = vertex_offset + 0;
+        cube_indicies[index_offset + 14] = vertex_offset + 6;
 
-                //left face
-                cube_indicies[index_offset + 12] = vertex_offset + 4;
-                cube_indicies[index_offset + 13] = vertex_offset + 0;
-                cube_indicies[index_offset + 14] = vertex_offset + 6;
+        cube_indicies[index_offset + 15] = vertex_offset + 0;
+        cube_indicies[index_offset + 16] = vertex_offset + 2;
+        cube_indicies[index_offset + 17] = vertex_offset + 6;
 
-                cube_indicies[index_offset + 15] = vertex_offset + 0;
-                cube_indicies[index_offset + 16] = vertex_offset + 2;
-                cube_indicies[index_offset + 17] = vertex_offset + 6;
+        //top face
+        cube_indicies[index_offset + 18] = vertex_offset + 0;
+        cube_indicies[index_offset + 19] = vertex_offset + 4;
+        cube_indicies[index_offset + 20] = vertex_offset + 5;
 
-                //top face
-                cube_indicies[index_offset + 18] = vertex_offset + 0;
-                cube_indicies[index_offset + 19] = vertex_offset + 4;
-                cube_indicies[index_offset + 20] = vertex_offset + 5;
-
-                cube_indicies[index_offset + 21] = vertex_offset + 0;
-                cube_indicies[index_offset + 22] = vertex_offset + 5;
-                cube_indicies[index_offset + 23] = vertex_offset + 1;
+        cube_indicies[index_offset + 21] = vertex_offset + 0;
+        cube_indicies[index_offset + 22] = vertex_offset + 5;
+        cube_indicies[index_offset + 23] = vertex_offset + 1;
                 
-                //bottom face
-                cube_indicies[index_offset + 24] = vertex_offset + 2;
-                cube_indicies[index_offset + 25] = vertex_offset + 7;
-                cube_indicies[index_offset + 26] = vertex_offset + 6;
+        //bottom face
+        cube_indicies[index_offset + 24] = vertex_offset + 2;
+        cube_indicies[index_offset + 25] = vertex_offset + 7;
+        cube_indicies[index_offset + 26] = vertex_offset + 6;
 
-                cube_indicies[index_offset + 27] = vertex_offset + 2;
-                cube_indicies[index_offset + 28] = vertex_offset + 3;
-                cube_indicies[index_offset + 29] = vertex_offset + 7;
+        cube_indicies[index_offset + 27] = vertex_offset + 2;
+        cube_indicies[index_offset + 28] = vertex_offset + 3;
+        cube_indicies[index_offset + 29] = vertex_offset + 7;
 
-                //back face
-                cube_indicies[index_offset + 30] = vertex_offset + 6;
-                cube_indicies[index_offset + 31] = vertex_offset + 5;
-                cube_indicies[index_offset + 32] = vertex_offset + 4;
+        //back face
+        cube_indicies[index_offset + 30] = vertex_offset + 6;
+        cube_indicies[index_offset + 31] = vertex_offset + 5;
+        cube_indicies[index_offset + 32] = vertex_offset + 4;
 
-                cube_indicies[index_offset + 33] = vertex_offset + 7;
-                cube_indicies[index_offset + 34] = vertex_offset + 5;
-                cube_indicies[index_offset + 35] = vertex_offset + 6;
-            }
-        }
+        cube_indicies[index_offset + 33] = vertex_offset + 7;
+        cube_indicies[index_offset + 34] = vertex_offset + 5;
+        cube_indicies[index_offset + 35] = vertex_offset + 6;
+          
     }
+    chunk->indexCount = total_blocks * INDEX_PER_CUBE;
+    chunk->indexView.SizeInBytes = total_blocks * INDEX_PER_CUBE * sizeof(unsigned int);
     memcpy(chunk->indexMap, cube_indicies, chunk->indexView.SizeInBytes);
     delete[] cube_indicies;
 }

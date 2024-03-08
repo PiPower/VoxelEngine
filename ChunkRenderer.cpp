@@ -25,7 +25,7 @@ void ChunkRenderer::BindCamera(const Camera* camera)
 
 void ChunkRenderer::StartRecording()
 {
-	float color[4] = {0, 0, 0, 1 };
+	float color[4] = {0.3, 0.3, 0.7, 1 };
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = CurrentBackBufferView();
 	D3D12_CPU_DESCRIPTOR_HANDLE depth_hanlde = CurrentDepthBufferView();
 	D3D12_RESOURCE_BARRIER barrier = {};
