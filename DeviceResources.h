@@ -36,6 +36,7 @@ public:
 	ID3D12Resource* CreateTexture2D(int width, int height, int mipLevels = 1, 
 		D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE, DXGI_FORMAT format = DXGI_FORMAT_R32G32B32_FLOAT);
 	ID3D12DescriptorHeap* CreateTextureDH(int count, ID3D12Resource** array_of_resources);
+	float AspectRatio();
 	void Synchronize();
 	virtual ~DeviceResources(){}
 protected:
@@ -43,7 +44,6 @@ protected:
 	void CreateDescriptorHeaps();
 	virtual void Resize(HWND hwnd);
 	void CreateSwapChain(HWND hwnd);
-	float AspectRatio();
 protected:
 	ComPtr<IDXGIFactory4> factory;
 	ComPtr<IDXGISwapChain3> SwapChain;

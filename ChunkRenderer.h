@@ -1,12 +1,14 @@
 #include "DeviceResources.h"
 #include "Chunk.h"
+#include "Camera.h"
 #pragma once
 class ChunkRenderer : public DeviceResources
 {
 public:
 	ChunkRenderer(HWND hwnd);
+	void BindCamera(const Camera* camera);
 	void StartRecording();
-	void testDraw();
+	void DrawChunk(Chunk* chunk);
 	void StopRecording();
 protected:
 	void CompileShaders();
@@ -18,5 +20,6 @@ private:
 	ComPtr<ID3DBlob> vs_shaderBlob;
 	ComPtr<ID3DBlob> ps_shaderBlob;
 	ComPtr<ID3D12Resource> test_vb;
+	const Camera* camera;
 };
 

@@ -2,11 +2,6 @@
 #include <d3dcompiler.h>
 #include "d3dx12.h"
 
-struct Vertex
-{
-	float x, y, z;
-};
-
 ChunkRenderer::ChunkRenderer(HWND hwnd)
 	:
 	DeviceResources(hwnd)
@@ -21,17 +16,11 @@ ChunkRenderer::ChunkRenderer(HWND hwnd)
 	ID3D12CommandList* ppCommandLists[] = { CommandList.Get() };
 	CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 	this->Synchronize();
+}
 
-	test_vb = CreateUploadBuffer(sizeof(Vertex) *3);
-	UINT* map;
-	CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
-	test_vb.Get()->Map(0, &readRange, (void**)&map);
-	Vertex v_b_c[3] = { 
-			{ -0.5f, -0.5f, 1.0f } ,
-			{-0.5f, 0.5f,  1.0f } ,
-			{ 0.5f, -0.5f,  1.0f }
-	};
-	memcpy(map, v_b_c, 3 * sizeof(Vertex));
+void ChunkRenderer::BindCamera(const Camera* camera)
+{
+	this->camera = camera;
 }
 
 void ChunkRenderer::StartRecording()
@@ -58,19 +47,16 @@ void ChunkRenderer::StartRecording()
 	CommandList->OMSetRenderTargets(1, &rtv_handle, true, &depth_hanlde);
 	CommandList->SetGraphicsRootSignature(rootSignature.Get());
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	CommandList->SetGraphicsRootConstantBufferView(0, camera->CBuffer->GetGPUVirtualAddress());
 }
 
-void ChunkRenderer::testDraw()
+
+void ChunkRenderer::DrawChunk(Chunk* chunk)
 {
-	D3D12_VERTEX_BUFFER_VIEW view;
-
-	view.BufferLocation = test_vb.Get()->GetGPUVirtualAddress();
-	view.StrideInBytes = sizeof(Vertex);
-	view.SizeInBytes = sizeof(Vertex) * 3;
-
-	CommandList->IASetVertexBuffers(0, 1, &view);
-	CommandList->DrawInstanced(3, 1, 0, 0);
-
+	CommandList->IASetVertexBuffers(0, 1, &chunk->vertexView);
+	CommandList->IASetIndexBuffer(&chunk->indexView);
+	CommandList->DrawIndexedInstanced(chunk->indexCount, 1, 0, 0, 0);
 }
 
 void ChunkRenderer::StopRecording()
@@ -142,7 +128,7 @@ void ChunkRenderer::CreateRootSignature()
 {
 
 	CD3DX12_ROOT_PARAMETER1 rootSlots[1];
-	rootSlots[0].InitAsConstantBufferView(0);
+	rootSlots[0].InitAsConstantBufferView(0);//placeholder for later 
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 	rootSignatureDesc.Init_1_1(_countof(rootSlots), rootSlots, 0, nullptr,
