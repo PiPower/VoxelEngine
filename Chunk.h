@@ -4,7 +4,7 @@
 #pragma once
 
 #define BLOCK_COUNT_X 16
-#define BLOCK_COUNT_Y 16
+#define BLOCK_COUNT_Y 128
 #define BLOCK_COUNT_Z 16
 
 #define VERTEX_COUNT_X (BLOCK_COUNT_X + 1)

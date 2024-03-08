@@ -42,7 +42,9 @@ void UpdateGpuMemory(Chunk* chunk)
     Vertex* buffer = new Vertex[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTEX_PER_CUBE];
     //create voxel mesh
     unsigned int total_blocks = 0;
-
+    float x_coord_start = -1.0f;
+    float y_coord_start = (float)BLOCK_COUNT_Y / BLOCK_COUNT_X;
+    float z_coord_start = -(float)BLOCK_COUNT_Z / BLOCK_COUNT_X;
 
     for (int z = 0; z < BLOCK_COUNT_Z; z++)
     {
@@ -67,44 +69,44 @@ void UpdateGpuMemory(Chunk* chunk)
                     continue;
                 }
                 //front of cube ----------------------------------------------------------
-                vertex.x = -1.0f + 2.0f * x / BLOCK_COUNT_X;
-                vertex.y = 1.0f - 2.0f * y / BLOCK_COUNT_Y;
-                vertex.z = -1.0f + 2.0f * z / BLOCK_COUNT_Z;
+                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * x / BLOCK_COUNT_X;
+                vertex.y = y_coord_start - 2.0f * abs(y_coord_start ) * y / BLOCK_COUNT_Y;
+                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * z / BLOCK_COUNT_Z;
                 buffer[block_index] = vertex;
 
-                vertex.x = -1.0f + 2.0f * (x+1) / BLOCK_COUNT_X;
-                vertex.y = 1.0f - 2.0f * y / BLOCK_COUNT_Y;
-                vertex.z = -1.0f + 2.0f * z / BLOCK_COUNT_Z;
+                vertex.x = x_coord_start + 2.0f * abs(x_coord_start)* (x+1) / BLOCK_COUNT_X;
+                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * y / BLOCK_COUNT_Y;
+                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * z / BLOCK_COUNT_Z;
                 buffer[block_index + 1] = vertex;
 
-                vertex.x = -1.0f + 2.0f * x / BLOCK_COUNT_X;
-                vertex.y = 1.0f - 2.0f * (y+1) / BLOCK_COUNT_Y;
-                vertex.z = -1.0f + 2.0f * z / BLOCK_COUNT_Z;
+                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * x / BLOCK_COUNT_X;
+                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * (y+1) / BLOCK_COUNT_Y;
+                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * z / BLOCK_COUNT_Z;
                 buffer[block_index + 2] = vertex;
 
-                vertex.x = -1.0f + 2.0f * (x + 1) / BLOCK_COUNT_X;
-                vertex.y = 1.0f - 2.0f * (y + 1)/ BLOCK_COUNT_Y;
-                vertex.z = -1.0f + 2.0f * z / BLOCK_COUNT_Z;
+                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * (x + 1) / BLOCK_COUNT_X;
+                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * (y + 1)/ BLOCK_COUNT_Y;
+                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * z / BLOCK_COUNT_Z;
                 buffer[block_index + 3] = vertex;
                 //back of cube ----------------------------------------------------------
-                vertex.x = -1.0f + 2.0f * x / BLOCK_COUNT_X;
-                vertex.y = 1.0f - 2.0f * y / BLOCK_COUNT_Y;
-                vertex.z = -1.0f + 2.0f * (z+1) / BLOCK_COUNT_Z;
+                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * x / BLOCK_COUNT_X;
+                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * y / BLOCK_COUNT_Y;
+                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * (z+1) / BLOCK_COUNT_Z;
                 buffer[block_index + 4] = vertex;
 
-                vertex.x = -1.0f + 2.0f * (x + 1) / BLOCK_COUNT_X;
-                vertex.y = 1.0f - 2.0f * y / BLOCK_COUNT_Y;
-                vertex.z = -1.0f + 2.0f * (z + 1) / BLOCK_COUNT_Z;
+                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * (x + 1) / BLOCK_COUNT_X;
+                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * y / BLOCK_COUNT_Y;
+                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * (z + 1) / BLOCK_COUNT_Z;
                 buffer[block_index + 5] = vertex;
 
-                vertex.x = -1.0f + 2.0f * x / BLOCK_COUNT_X;
-                vertex.y = 1.0f - 2.0f * (y + 1) / BLOCK_COUNT_Y;
-                vertex.z = -1.0f + 2.0f * (z + 1) / BLOCK_COUNT_Z;
+                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * x / BLOCK_COUNT_X;
+                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * (y + 1) / BLOCK_COUNT_Y;
+                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * (z + 1) / BLOCK_COUNT_Z;
                 buffer[block_index + 6] = vertex;
 
-                vertex.x = -1.0f + 2.0f * (x + 1) / BLOCK_COUNT_X;
-                vertex.y = 1.0f - 2.0f * (y + 1) / BLOCK_COUNT_Y;
-                vertex.z = -1.0f + 2.0f * (z + 1) / BLOCK_COUNT_Z;
+                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * (x + 1) / BLOCK_COUNT_X;
+                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * (y + 1) / BLOCK_COUNT_Y;
+                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * (z + 1) / BLOCK_COUNT_Z;
                 buffer[block_index + 7] = vertex;
 
                 total_blocks++;
