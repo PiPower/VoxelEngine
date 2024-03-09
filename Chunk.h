@@ -4,7 +4,7 @@
 #pragma once
 
 #define BLOCK_COUNT_X 16
-#define BLOCK_COUNT_Y 128
+#define BLOCK_COUNT_Y 178
 #define BLOCK_COUNT_Z 16
 
 #define VERTECIES_PER_CUBE 8
@@ -48,4 +48,5 @@ struct Chunk
 
 Chunk* CreateChunk(DeviceResources* device, int x_grid_coord = 0, int z_grid_coord = 0);
 BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned int z);
-void UpdateGpuMemory(Chunk * chunk);
+void UpdateGpuMemory(Chunk * chunk, Chunk* leftNeighbour = nullptr,
+					Chunk* rightNeighbour = nullptr, Chunk* backNeighbour = nullptr, Chunk* frontNeighbour = nullptr);

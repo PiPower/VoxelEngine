@@ -55,10 +55,11 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord)
 
 BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned int z)
 {
+    if (chunk == nullptr) return BlockType::air;
     return chunk->blockGrid[z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x];
 }
 
-void UpdateGpuMemory(Chunk* chunk)
+void UpdateGpuMemory(Chunk* chunk, Chunk* leftNeighbour, Chunk* rightNeighbour, Chunk* backNeighbour, Chunk* frontNeighbour)
 {
     Vertex* buffer = new Vertex[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTECIES_PER_CUBE];
     //create voxel mesh
@@ -78,14 +79,18 @@ void UpdateGpuMemory(Chunk* chunk)
 
                 Vertex vertex = {};
                 unsigned int block_index = VERTECIES_PER_CUBE * total_blocks;
-                bool xAxisShown = (x < BLOCK_COUNT_X - 1 ? GetBlockType(chunk, x + 1, y, z) == BlockType::air : true)
-                    || (x > 0 ? GetBlockType(chunk, x - 1, y, z) == BlockType::air : true);
+                bool xAxisShown = (x < BLOCK_COUNT_X - 1 ?
+                    GetBlockType(chunk, x + 1, y, z) == BlockType::air : GetBlockType(rightNeighbour, 0, y, z) == BlockType::air)
+                    || (x > 0 ?
+                    GetBlockType(chunk, x - 1, y, z) == BlockType::air : GetBlockType(leftNeighbour, BLOCK_COUNT_X - 1, y, z) == BlockType::air);
 
                 bool yAxisShown = (y < BLOCK_COUNT_Y - 1 ? GetBlockType(chunk, x, y + 1, z) == BlockType::air : true)
                     || (y > 0 ? GetBlockType(chunk, x, y - 1, z) == BlockType::air : true);
 
-                bool zAxisShown = (z < BLOCK_COUNT_Z - 1 ? GetBlockType(chunk, x, y, z + 1) == BlockType::air : true)
-                    || (z > 0 ? GetBlockType(chunk, x, y, z - 1) == BlockType::air : true);
+                bool zAxisShown = (z < BLOCK_COUNT_Z - 1 ? 
+                    GetBlockType(chunk, x, y, z + 1) == BlockType::air : GetBlockType(frontNeighbour, x, y, 0) == BlockType::air)
+                    || (z > 0 ?
+                    GetBlockType(chunk, x, y, z - 1) == BlockType::air : GetBlockType(backNeighbour, x, y, BLOCK_COUNT_Z - 1) == BlockType::air);
 
                 if (!(xAxisShown || yAxisShown || zAxisShown))
                 {
