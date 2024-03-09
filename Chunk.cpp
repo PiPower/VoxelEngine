@@ -6,9 +6,24 @@ constexpr float y_coord_start = (float)BLOCK_COUNT_Y / BLOCK_COUNT_X;
 constexpr float z_coord_start = -(float)BLOCK_COUNT_Z / BLOCK_COUNT_X;
 
 
-Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord)
+Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, std::vector<int> heightMap)
 {
     Chunk* newChunk = new Chunk();
+
+    if (heightMap.size() != 0)
+    {
+        if (heightMap.size() != BLOCK_COUNT_Z * BLOCK_COUNT_X)
+        {
+            fprintf(stderr, "Incorrect number of height levels for chunk");
+            exit(-1);
+        }
+        newChunk->heightMap = heightMap;
+    }
+    else
+    {
+        newChunk->heightMap = vector(BLOCK_COUNT_Z * BLOCK_COUNT_X, BLOCK_COUNT_Y);
+    }
+
 
     newChunk->blockGrid = new BlockType[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z];
     device->CreateUploadBuffer(&newChunk->memoryForBlocksVertecies, BLOCK_COUNT_X *
@@ -24,17 +39,17 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord)
     newChunk->memoryForBlocksVertecies->Map(0, &readRange, &newChunk->vertexMap);
     newChunk->cbuffer->Map(0, &readRange, &newChunk->cbufferMap);
 
-
-    std::random_device r;
-    // Choose a random mean between 1 and 6
-    std::default_random_engine e1(r());
-    std::uniform_real_distribution<float> uniform(0, 1);
-
-    for (int i = 0; i < BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z; i++)
+    for (int z = 0; z < BLOCK_COUNT_Z; z++)
     {
-        float prob = uniform(e1);
-        //newChunk->blockGrid[i] = prob > 0.80 ? BlockType::grass : BlockType::air;
-        newChunk->blockGrid[i] = BlockType::grass;
+        for (int y = 0; y < BLOCK_COUNT_Y; y++)
+        {
+            for (int x = 0; x < BLOCK_COUNT_X; x++)
+            {
+                int index = z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x;
+                int airLevel = newChunk->heightMap[z * BLOCK_COUNT_X + x];
+                newChunk->blockGrid[index] = y > airLevel?  BlockType::grass : BlockType::air;
+            }
+        }
     }
 
     newChunk->indexCount = INDECIES_PER_CUBE * BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z;
@@ -55,7 +70,7 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord)
 
 BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned int z)
 {
-    if (chunk == nullptr) return BlockType::air;
+    if (chunk == nullptr) return BlockType::grass;
     return chunk->blockGrid[z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x];
 }
 
@@ -84,13 +99,14 @@ void UpdateGpuMemory(Chunk* chunk, Chunk* leftNeighbour, Chunk* rightNeighbour, 
                     || (x > 0 ?
                     GetBlockType(chunk, x - 1, y, z) == BlockType::air : GetBlockType(leftNeighbour, BLOCK_COUNT_X - 1, y, z) == BlockType::air);
 
-                bool yAxisShown = (y < BLOCK_COUNT_Y - 1 ? GetBlockType(chunk, x, y + 1, z) == BlockType::air : true)
+                bool yAxisShown = (y < BLOCK_COUNT_Y - 1 ? GetBlockType(chunk, x, y + 1, z) == BlockType::air : false)
                     || (y > 0 ? GetBlockType(chunk, x, y - 1, z) == BlockType::air : true);
 
                 bool zAxisShown = (z < BLOCK_COUNT_Z - 1 ? 
                     GetBlockType(chunk, x, y, z + 1) == BlockType::air : GetBlockType(frontNeighbour, x, y, 0) == BlockType::air)
                     || (z > 0 ?
                     GetBlockType(chunk, x, y, z - 1) == BlockType::air : GetBlockType(backNeighbour, x, y, BLOCK_COUNT_Z - 1) == BlockType::air);
+
 
                 if (!(xAxisShown || yAxisShown || zAxisShown))
                 {

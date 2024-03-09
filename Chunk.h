@@ -44,9 +44,10 @@ struct Chunk
 	D3D12_VERTEX_BUFFER_VIEW vertexView;
 	D3D12_INDEX_BUFFER_VIEW indexView;
 	ChunkCbuffer cbufferHost;
+	std::vector<int> heightMap; // X x Z array
 };
 
-Chunk* CreateChunk(DeviceResources* device, int x_grid_coord = 0, int z_grid_coord = 0);
+Chunk* CreateChunk(DeviceResources* device, int x_grid_coord = 0, int z_grid_coord = 0, std::vector<int> heightMap = {});
 BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned int z);
 void UpdateGpuMemory(Chunk * chunk, Chunk* leftNeighbour = nullptr,
 					Chunk* rightNeighbour = nullptr, Chunk* backNeighbour = nullptr, Chunk* frontNeighbour = nullptr);
