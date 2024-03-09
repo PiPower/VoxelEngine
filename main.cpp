@@ -7,16 +7,16 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 {
 	Window window(1600, 900, L"test", L"Voxel world");
 	ChunkRenderer renderer(window.GetWindowHWND());
-	Chunk* chunk = CreateChunk(&renderer);
+	ChunkGrid* grid = CreateChunkGrid(&renderer, 4, 4);
+
 	Camera* cam = CreateCamera(&renderer, { 0,0,-2.5 }, { 0,0,1 }, { 0,1,0 });
 	renderer.BindCamera(cam);
 
-	UpdateGpuMemory(chunk);
 	window.RegisterResizezable(&renderer, ChunkRenderer::Resize);
 	while (window.ProcessMessages() == 0)
 	{
 		renderer.StartRecording();
-		renderer.DrawChunk(chunk);
+		renderer.DrawGridOfChunks(grid);
 		renderer.StopRecording();
 
 		processUserInput(cam, &window);

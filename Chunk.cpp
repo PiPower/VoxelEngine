@@ -1,34 +1,55 @@
 #include "Chunk.h"
+#include <random>
 
-Chunk* CreateChunk(DeviceResources* device)
+constexpr float x_coord_start = -1.0f;
+constexpr float y_coord_start = (float)BLOCK_COUNT_Y / BLOCK_COUNT_X;
+constexpr float z_coord_start = -(float)BLOCK_COUNT_Z / BLOCK_COUNT_X;
+
+
+Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord)
 {
     Chunk* newChunk = new Chunk();
 
     newChunk->blockGrid = new BlockType[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z];
     device->CreateUploadBuffer(&newChunk->memoryForBlocksVertecies, BLOCK_COUNT_X *
-                                    BLOCK_COUNT_Y * BLOCK_COUNT_Z * sizeof(Vertex) * VERTEX_PER_CUBE);
+                                    BLOCK_COUNT_Y * BLOCK_COUNT_Z * sizeof(Vertex) * VERTECIES_PER_CUBE);
     device->CreateUploadBuffer(&newChunk->memoryForBlocksIndecies, BLOCK_COUNT_X *
-                                BLOCK_COUNT_Y * BLOCK_COUNT_Z * sizeof(unsigned int) * INDEX_PER_CUBE);
+                                BLOCK_COUNT_Y * BLOCK_COUNT_Z * sizeof(unsigned int) * INDECIES_PER_CUBE);
+
+    int cbufferSize = ceil(sizeof(ChunkCbuffer)/ 256.0f) * 256;
+    device->CreateUploadBuffer(&newChunk->cbuffer, cbufferSize);
 
     D3D12_RANGE readRange{ 0,0 };
     newChunk->memoryForBlocksIndecies->Map(0, &readRange, &newChunk->indexMap);
     newChunk->memoryForBlocksVertecies->Map(0, &readRange, &newChunk->vertexMap);
+    newChunk->cbuffer->Map(0, &readRange, &newChunk->cbufferMap);
+
+
+    std::random_device r;
+    // Choose a random mean between 1 and 6
+    std::default_random_engine e1(r());
+    std::uniform_real_distribution<float> uniform(0, 1);
 
     for (int i = 0; i < BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z; i++)
     {
+        float prob = uniform(e1);
+        //newChunk->blockGrid[i] = prob > 0.80 ? BlockType::grass : BlockType::air;
         newChunk->blockGrid[i] = BlockType::grass;
     }
 
-    newChunk->indexCount = INDEX_PER_CUBE * BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z;
+    newChunk->indexCount = INDECIES_PER_CUBE * BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z;
 
     newChunk->vertexView.BufferLocation = newChunk->memoryForBlocksVertecies->GetGPUVirtualAddress();
-    newChunk->vertexView.SizeInBytes = BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTEX_PER_CUBE * sizeof(Vertex);
+    newChunk->vertexView.SizeInBytes = BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTECIES_PER_CUBE * sizeof(Vertex);
     newChunk->vertexView.StrideInBytes = sizeof(Vertex);
 
     newChunk->indexView.BufferLocation = newChunk->memoryForBlocksIndecies->GetGPUVirtualAddress();
     newChunk->indexView.Format = DXGI_FORMAT_R32_UINT;
-    newChunk->indexView.SizeInBytes = BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * sizeof(unsigned int) * INDEX_PER_CUBE;
-
+    newChunk->indexView.SizeInBytes = BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * sizeof(unsigned int) * INDECIES_PER_CUBE;
+    
+    newChunk->cbufferHost.chunkOffsetX = 2 * abs(x_coord_start) * x_grid_coord;
+    newChunk->cbufferHost.chunkOffsetZ = 2 * abs(z_coord_start) * z_grid_coord;
+    memcpy(newChunk->cbufferMap, &newChunk->cbufferHost, sizeof(ChunkCbuffer));
     return newChunk;
 }
 
@@ -39,12 +60,9 @@ BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned in
 
 void UpdateGpuMemory(Chunk* chunk)
 {
-    Vertex* buffer = new Vertex[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTEX_PER_CUBE];
+    Vertex* buffer = new Vertex[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTECIES_PER_CUBE];
     //create voxel mesh
     unsigned int total_blocks = 0;
-    float x_coord_start = -1.0f;
-    float y_coord_start = (float)BLOCK_COUNT_Y / BLOCK_COUNT_X;
-    float z_coord_start = -(float)BLOCK_COUNT_Z / BLOCK_COUNT_X;
 
     for (int z = 0; z < BLOCK_COUNT_Z; z++)
     {
@@ -53,8 +71,13 @@ void UpdateGpuMemory(Chunk* chunk)
             for (int x = 0; x < BLOCK_COUNT_X; x++)
             {
 
+                if (GetBlockType(chunk, x, y, z) == BlockType::air)
+                {
+                    continue;
+                }
+
                 Vertex vertex = {};
-                unsigned int block_index = VERTEX_PER_CUBE * total_blocks;
+                unsigned int block_index = VERTECIES_PER_CUBE * total_blocks;
                 bool xAxisShown = (x < BLOCK_COUNT_X - 1 ? GetBlockType(chunk, x + 1, y, z) == BlockType::air : true)
                     || (x > 0 ? GetBlockType(chunk, x - 1, y, z) == BlockType::air : true);
 
@@ -113,17 +136,17 @@ void UpdateGpuMemory(Chunk* chunk)
             }
         }
     }
-    chunk->vertexView.SizeInBytes = total_blocks * VERTEX_PER_CUBE * sizeof(Vertex);
+    chunk->vertexView.SizeInBytes = total_blocks * VERTECIES_PER_CUBE * sizeof(Vertex);
     memcpy(chunk->vertexMap, buffer, chunk->vertexView.SizeInBytes);
     delete[] buffer;
     //create index buffer
-    unsigned int* cube_indicies = new unsigned int[INDEX_PER_CUBE * BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z];
+    unsigned int* cube_indicies = new unsigned int[INDECIES_PER_CUBE * BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z];
     unsigned int storedBlockIndicies = 0;
     for (int block = 0; block < total_blocks; block++)
     {
        
-        unsigned int vertex_offset = VERTEX_PER_CUBE * block;
-        unsigned int index_offset = INDEX_PER_CUBE * storedBlockIndicies;
+        unsigned int vertex_offset = VERTECIES_PER_CUBE * block;
+        unsigned int index_offset = INDECIES_PER_CUBE * storedBlockIndicies;
         storedBlockIndicies++;
         //front face
         cube_indicies[index_offset + 0] = vertex_offset + 0;
@@ -180,8 +203,8 @@ void UpdateGpuMemory(Chunk* chunk)
         cube_indicies[index_offset + 35] = vertex_offset + 6;
           
     }
-    chunk->indexCount = total_blocks * INDEX_PER_CUBE;
-    chunk->indexView.SizeInBytes = total_blocks * INDEX_PER_CUBE * sizeof(unsigned int);
+    chunk->indexCount = total_blocks * INDECIES_PER_CUBE;
+    chunk->indexView.SizeInBytes = total_blocks * INDECIES_PER_CUBE * sizeof(unsigned int);
     memcpy(chunk->indexMap, cube_indicies, chunk->indexView.SizeInBytes);
     delete[] cube_indicies;
 }

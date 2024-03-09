@@ -56,7 +56,16 @@ void ChunkRenderer::DrawChunk(Chunk* chunk)
 {
 	CommandList->IASetVertexBuffers(0, 1, &chunk->vertexView);
 	CommandList->IASetIndexBuffer(&chunk->indexView);
+	CommandList->SetGraphicsRootConstantBufferView(1, chunk->cbuffer->GetGPUVirtualAddress());
 	CommandList->DrawIndexedInstanced(chunk->indexCount, 1, 0, 0, 0);
+}
+
+void ChunkRenderer::DrawGridOfChunks(ChunkGrid* grid)
+{
+	for (int i = 0; i < grid->totalChunks; i++)
+	{
+		DrawChunk(grid->gridOfChunks[i]);
+	}
 }
 
 void ChunkRenderer::StopRecording()
@@ -133,8 +142,9 @@ void ChunkRenderer::CompileShaders()
 void ChunkRenderer::CreateRootSignature()
 {
 
-	CD3DX12_ROOT_PARAMETER1 rootSlots[1];
-	rootSlots[0].InitAsConstantBufferView(0);//placeholder for later 
+	CD3DX12_ROOT_PARAMETER1 rootSlots[2];
+	rootSlots[0].InitAsConstantBufferView(0);
+	rootSlots[1].InitAsConstantBufferView(1);
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
 	rootSignatureDesc.Init_1_1(_countof(rootSlots), rootSlots, 0, nullptr,

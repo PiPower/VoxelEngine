@@ -14,6 +14,11 @@ cbuffer WorldTransform : register(b0)
     float4x4 ProjectionTransform;
 };
 
+cbuffer ChunkCbuffer : register(b1)
+{
+    float2 chunkOffset;
+};
+
 static float4 triangleColor[] =
 {
     float4(1, 1, 1, 1),
@@ -23,6 +28,7 @@ static float4 triangleColor[] =
 Vout VS(Vin vin)
 {    
     Vout vout;
+    vin.pos = vin.pos + float3(chunkOffset.x, 0, chunkOffset.y);
     vout.Pos = mul(float4(vin.pos, 1), CameraTransform);
     vout.Pos = mul(vout.Pos, ProjectionTransform);
     return vout;

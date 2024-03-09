@@ -7,12 +7,8 @@
 #define BLOCK_COUNT_Y 128
 #define BLOCK_COUNT_Z 16
 
-#define VERTEX_COUNT_X (BLOCK_COUNT_X + 1)
-#define VERTEX_COUNT_Y (BLOCK_COUNT_Y + 1)
-#define VERTEX_COUNT_Z (BLOCK_COUNT_Z + 1)
-
-#define VERTEX_PER_CUBE 8
-#define INDEX_PER_CUBE 36
+#define VERTECIES_PER_CUBE 8
+#define INDECIES_PER_CUBE 36
 using namespace  Microsoft::WRL;
 enum class BlockType
 {
@@ -27,20 +23,29 @@ struct Vertex
 	float z;
 };
 
+struct ChunkCbuffer
+{
+	float chunkOffsetX;// in x dim
+	float chunkOffsetZ;// in z dim
+};
+
 typedef void* DevicePointer;
 struct Chunk
 {
 	BlockType* blockGrid;
 	ComPtr<ID3D12Resource> memoryForBlocksVertecies;
 	ComPtr<ID3D12Resource> memoryForBlocksIndecies;
+	ComPtr<ID3D12Resource> cbuffer;
 	DevicePointer vertexMap;
 	DevicePointer indexMap;
+	DevicePointer cbufferMap;
 	UINT indexCount;
 
 	D3D12_VERTEX_BUFFER_VIEW vertexView;
 	D3D12_INDEX_BUFFER_VIEW indexView;
+	ChunkCbuffer cbufferHost;
 };
 
-Chunk* CreateChunk(DeviceResources* device);
+Chunk* CreateChunk(DeviceResources* device, int x_grid_coord = 0, int z_grid_coord = 0);
 BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned int z);
 void UpdateGpuMemory(Chunk * chunk);

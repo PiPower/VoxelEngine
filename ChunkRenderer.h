@@ -1,5 +1,5 @@
 #include "DeviceResources.h"
-#include "Chunk.h"
+#include "ChunkGrid.h"
 #include "Camera.h"
 #pragma once
 class ChunkRenderer : public DeviceResources
@@ -9,6 +9,7 @@ public:
 	void BindCamera(const Camera* camera);
 	void StartRecording();
 	void DrawChunk(Chunk* chunk);
+	void DrawGridOfChunks(ChunkGrid* grid);
 	void StopRecording();
 	static void Resize(HWND hwnd, void* renderer);
 protected:
