@@ -62,9 +62,12 @@ void ChunkRenderer::DrawChunk(Chunk* chunk)
 
 void ChunkRenderer::DrawGridOfChunks(ChunkGrid* grid)
 {
-	for (int i = 0; i < grid->totalChunks; i++)
+	CommandList->IASetVertexBuffers(0, 1, &grid->gridOfChunks[0]->vertexView);
+	for (int i = grid->totalChunks-1; i >=0; i--)
 	{
-		DrawChunk(grid->gridOfChunks[i]);
+		CommandList->IASetIndexBuffer(&grid->gridOfChunks[i]->indexView);
+		CommandList->SetGraphicsRootConstantBufferView(1, grid->gridOfChunks[i]->cbuffer->GetGPUVirtualAddress());
+		CommandList->DrawIndexedInstanced(grid->gridOfChunks[i]->indexCount, 1, 0, 0, 0);
 	}
 }
 

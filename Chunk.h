@@ -33,15 +33,16 @@ typedef void* DevicePointer;
 struct Chunk
 {
 	BlockType* blockGrid;
-	ComPtr<ID3D12Resource> memoryForBlocksVertecies;
+	static bool isVertexBufferInitialized;
+	static ComPtr<ID3D12Resource> memoryForBlocksVertecies;
 	ComPtr<ID3D12Resource> memoryForBlocksIndecies;
 	ComPtr<ID3D12Resource> cbuffer;
-	DevicePointer vertexMap;
+	static DevicePointer vertexMap;
 	DevicePointer indexMap;
 	DevicePointer cbufferMap;
 	UINT indexCount;
 
-	D3D12_VERTEX_BUFFER_VIEW vertexView;
+	static D3D12_VERTEX_BUFFER_VIEW vertexView;
 	D3D12_INDEX_BUFFER_VIEW indexView;
 	ChunkCbuffer cbufferHost;
 	std::vector<int> heightMap; // X x Z array
