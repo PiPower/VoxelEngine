@@ -17,6 +17,7 @@ Camera* CreateCamera(DeviceResources* device, XMFLOAT3 startPos, XMFLOAT3 lookDi
     newCamera->upDir = upDir;
     newCamera->rot = { 0,0 };
 
+
     int size = ceil(sizeof(XMFLOAT4X4) * 2.0/256) * 256;
 
     device->CreateUploadBuffer(&newCamera->CBuffer, size);
@@ -27,6 +28,7 @@ Camera* CreateCamera(DeviceResources* device, XMFLOAT3 startPos, XMFLOAT3 lookDi
     XMVECTOR upDirVec = XMLoadFloat3(&upDir);
 
     XMMATRIX cameraTransform = XMMatrixLookToLH(startPosVec, lookDirVec, upDirVec);
+    XMStoreFloat4x4(&newCamera->clipSpaceTransform, cameraTransform);
     cameraTransform = XMMatrixTranspose(cameraTransform);
     XMFLOAT4X4 matrixBuff;
     XMStoreFloat4x4(&matrixBuff, cameraTransform);
@@ -34,6 +36,8 @@ Camera* CreateCamera(DeviceResources* device, XMFLOAT3 startPos, XMFLOAT3 lookDi
 
 
     XMMATRIX perspectiveTransform = XMMatrixPerspectiveFovLH(3.14 / 2, device->AspectRatio(), n_f_planes.x, n_f_planes.y);
+    BoundingFrustum::CreateFromMatrix(newCamera->frustum, perspectiveTransform);
+
     perspectiveTransform = XMMatrixTranspose(perspectiveTransform);
     XMStoreFloat4x4(&matrixBuff, perspectiveTransform);
     memcpy((char*)newCamera->cbufferMap + (int)CbufferOffsets::perspectiveProjection, &matrixBuff, 4 * 4 * sizeof(float));
@@ -61,8 +65,32 @@ void MoveCamera(Camera* cam, float dx, float dy, float dz, float rotX, float rot
     XMStoreFloat3(&cam->eyePos, eyePosVec);
 
     XMMATRIX cameraTransform = XMMatrixLookToLH(eyePosVec, curr_focus, curr_up);
+    XMStoreFloat4x4(&cam->clipSpaceTransform, cameraTransform);
     cameraTransform = XMMatrixTranspose(cameraTransform);
     XMFLOAT4X4 matrixBuff;
     XMStoreFloat4x4(&matrixBuff, cameraTransform);
     memcpy(cam->cbufferMap, &matrixBuff, 4 * 4 * sizeof(float));
+}
+
+bool IsInFrustum(const BoundingVolumeSphere* boundingSphere, const Camera* camera)
+{
+    XMMATRIX clipSpaceTransform = XMLoadFloat4x4(&camera->clipSpaceTransform);
+    XMVECTOR vec = XMLoadFloat3(&boundingSphere->sphereCenter);
+    vec = XMVectorSetW(vec, 1.0f);
+    vec = XMVector4Transform(vec, clipSpaceTransform);
+    XMFLOAT4 currentVec;
+    XMStoreFloat4(&currentVec, vec);
+
+
+    BoundingSphere bds;
+    bds.Center.x = currentVec.x;
+    bds.Center.y = currentVec.y;
+    bds.Center.z = currentVec.z;
+    bds.Radius = boundingSphere->sphereRadius;
+    if (camera->frustum.Contains(bds) == DirectX::DISJOINT)
+    {
+        return false;
+    }
+    
+    return true;
 }

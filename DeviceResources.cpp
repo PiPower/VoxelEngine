@@ -38,6 +38,7 @@ DeviceResources::DeviceResources(HWND hwnd,int frame_count)
     backBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM), DsvFormat(DXGI_FORMAT_D24_UNORM_S8_UINT)
 {
 #if defined(_DEBUG)
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     // Enable the D3D12 debug layer.
     {
         ComPtr<ID3D12Debug> debugController;

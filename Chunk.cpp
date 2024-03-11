@@ -88,7 +88,6 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
         newChunk->heightMap = vector(BLOCK_COUNT_Z * BLOCK_COUNT_X, BLOCK_COUNT_Y);
     }
 
-
     newChunk->blockGrid = new BlockType[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z];
     for (int z = 0; z < BLOCK_COUNT_Z; z++)
     {
@@ -140,6 +139,13 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
 
         newChunk->isVertexBufferInitialized = true;
     }
+
+    newChunk->boundingVolume.sphereCenter = XMFLOAT3{ 
+        newChunk->cbufferHost.chunkOffsetX, 
+        0, 
+        newChunk->cbufferHost.chunkOffsetZ 
+    };
+    newChunk->boundingVolume.sphereRadius = sqrt( pow(x_coord_start, 2) + pow(y_coord_start, 2) + pow(z_coord_start, 2) );
     return newChunk;
 }
 

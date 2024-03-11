@@ -2,7 +2,7 @@
 #include <wrl.h>
 #include "DeviceResources.h"
 #pragma once
-
+#include <directxcollision.h>
 #define BLOCK_COUNT_X 16
 #define BLOCK_COUNT_Y 178
 #define BLOCK_COUNT_Z 16
@@ -29,6 +29,12 @@ struct ChunkCbuffer
 	float chunkOffsetZ;// in z dim
 };
 
+
+struct BoundingVolumeSphere
+{
+	XMFLOAT3 sphereCenter;
+	float sphereRadius;
+};
 typedef void* DevicePointer;
 struct Chunk
 {
@@ -46,6 +52,7 @@ struct Chunk
 	D3D12_INDEX_BUFFER_VIEW indexView;
 	ChunkCbuffer cbufferHost;
 	std::vector<int> heightMap; // X x Z array
+	BoundingVolumeSphere boundingVolume;
 };
 
 Chunk* CreateChunk(DeviceResources* device, int x_grid_coord = 0, int z_grid_coord = 0, std::vector<int> heightMap = {});
