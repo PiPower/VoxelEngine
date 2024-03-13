@@ -85,7 +85,7 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
     }
     else
     {
-        newChunk->heightMap = vector(BLOCK_COUNT_Z * BLOCK_COUNT_X, BLOCK_COUNT_Y);
+        newChunk->heightMap = vector<int>(BLOCK_COUNT_Z * BLOCK_COUNT_X, BLOCK_COUNT_Y);
     }
 
     newChunk->blockGrid = new BlockType[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z];
