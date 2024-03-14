@@ -15,18 +15,15 @@
 struct Vin
 {
     float3 pos : POSITION;
+    float2 texCoord : TEXCOORD0;
 };
 
 struct Vout
 {
     float4 Pos : SV_Position;
+    float2 texCoord : TEXCOORD0;
 };
 
-struct Gout
-{
-    float4 Pos : SV_Position;
-    float2 TexCoord : TEXCOORD0;
-};
 
 cbuffer WorldTransform : register(b0)
 {
@@ -44,8 +41,6 @@ SamplerState samplerWrap : register(s0);
 
 static float2 firstVertexText[] =
 {
-    float2(FRONT_S, 0), //front face
-    float2(FRONT_E, 0), //front face
     float2(RIGHT_S, 0),//right face
     float2(RIGHT_E, 0),//right face
     float2(LEFT_S, 0), //left face
@@ -60,8 +55,6 @@ static float2 firstVertexText[] =
 
 static float2 secondVertexText[] =
 {
-    float2(FRONT_E, 0), //front face
-    float2(FRONT_E, 1), //front face
     float2(RIGHT_E, 0), //right face
     float2(RIGHT_E, 1), //right face
     float2(LEFT_E, 0), //left face
@@ -76,8 +69,6 @@ static float2 secondVertexText[] =
 
 static float2 thirdVertexText[] =
 {
-    float2(FRONT_S, 1), //front face
-    float2(FRONT_S, 1), //front face
     float2(RIGHT_S, 1), //right face
     float2(RIGHT_S, 1), //right face
     float2(LEFT_S, 1), //left face
@@ -96,32 +87,12 @@ Vout VS(Vin vin)
     vin.pos = vin.pos + float3(chunkOffset.x, 0, chunkOffset.y);
     vout.Pos = mul(float4(vin.pos, 1), CameraTransform);
     vout.Pos = mul(vout.Pos, ProjectionTransform);
+    vout.texCoord = vin.texCoord;
     return vout;
 }
 
-[maxvertexcount(3)]
-void GS(
-    triangle Vout vertecies[3],
-    inout TriangleStream<Gout> triStream,
-    uint primID : SV_PrimitiveID
-)
-{
-    Gout outVertex;
-    outVertex.Pos = vertecies[0].Pos;
-    outVertex.TexCoord = firstVertexText[primID % 12];
-    triStream.Append(outVertex);
-    
-    outVertex.Pos = vertecies[1].Pos;
-    outVertex.TexCoord = secondVertexText[primID % 12];
-    triStream.Append(outVertex);
-    
-    outVertex.Pos = vertecies[2].Pos;
-    outVertex.TexCoord = thirdVertexText[primID % 12];
-    triStream.Append(outVertex);
 
-}
-
-float4 PS(Gout vin) : SV_Target
+float4 PS(Vout vin) : SV_Target
 {
-    return tex.Sample(samplerWrap, vin.TexCoord);
+    return tex.Sample(samplerWrap, vin.texCoord);
 }

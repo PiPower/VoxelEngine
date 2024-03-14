@@ -7,7 +7,7 @@
 #define BLOCK_COUNT_Y 178
 #define BLOCK_COUNT_Z 16
 
-#define VERTECIES_PER_CUBE 8
+#define VERTECIES_PER_CUBE 36
 #define INDECIES_PER_CUBE 36
 using namespace  Microsoft::WRL;
 enum class BlockType
@@ -21,6 +21,8 @@ struct Vertex
 	float x;
 	float y;
 	float z;
+	float u;
+	float v;
 };
 
 struct ChunkCbuffer

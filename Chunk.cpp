@@ -1,6 +1,22 @@
 #include "Chunk.h"
 #include <random>
 
+
+#define FRONT_S (1.0f/3.0f)
+#define FRONT_E (2.0f/3.0f)
+#define RIGHT_S (1.0f/3.0f)
+#define RIGHT_E (2.0f/3.0f)
+#define LEFT_S (1.0f/3.0f)
+#define LEFT_E (2.0f/3.0f)
+#define BACK_S (1.0f/3.0f)
+#define BACK_E (2.0f/3.0f)
+
+#define TOP_S 0.6726f
+#define TOP_E (1.0f)
+
+#define BOTTOM_S 0 
+#define BOTTOM_E (1.0f/3.0f)
+
 constexpr float x_coord_start = -1.0f;
 constexpr float y_coord_start = (float)BLOCK_COUNT_Y / BLOCK_COUNT_X;
 constexpr float z_coord_start = -(float)BLOCK_COUNT_Z / BLOCK_COUNT_X;
@@ -10,7 +26,16 @@ ComPtr<ID3D12Resource> Chunk::memoryForBlocksVertecies;
 D3D12_VERTEX_BUFFER_VIEW Chunk::vertexView = {};
 DevicePointer Chunk::vertexMap = nullptr;
 
-
+static Vertex getVertex(int x, int y, int z, float u, float v)
+{
+    Vertex vertex = {};
+    vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * x / BLOCK_COUNT_X;
+    vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * y / BLOCK_COUNT_Y;
+    vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * z / BLOCK_COUNT_Z;
+    vertex.u = u;
+    vertex.v = v;
+    return vertex;
+}
 static void buildMesh(Chunk* chunk)
 {
     Vertex* buffer = new Vertex[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTECIES_PER_CUBE];
@@ -23,46 +48,60 @@ static void buildMesh(Chunk* chunk)
                 Vertex vertex = {};
                 unsigned int block_id = z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x;
                 unsigned int block_index = VERTECIES_PER_CUBE * block_id;
-                //front of cube ----------------------------------------------------------
-                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * x / BLOCK_COUNT_X;
-                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * y / BLOCK_COUNT_Y;
-                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * z / BLOCK_COUNT_Z;
-                buffer[block_index] = vertex;
+                //front face of cube ----------------------------------------------------------
+                buffer[block_index + 0] = getVertex(x,y,z, FRONT_S, 0);
+                buffer[block_index + 1] = getVertex(x+1, y, z, FRONT_E, 0);
+                buffer[block_index + 2] = getVertex(x, y + 1, z, FRONT_S, 1.0f);
 
-                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * (x + 1) / BLOCK_COUNT_X;
-                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * y / BLOCK_COUNT_Y;
-                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * z / BLOCK_COUNT_Z;
-                buffer[block_index + 1] = vertex;
+                buffer[block_index + 3] = getVertex(x + 1, y, z, FRONT_E, 0);
+                buffer[block_index + 4] = getVertex(x + 1, y + 1, z, FRONT_E, 1.0f);
+                buffer[block_index + 5] = getVertex(x, y + 1, z, FRONT_S, 1.0f);
+                //right face of cube ----------------------------------------------------------
+                block_index += 6;
+                buffer[block_index + 0] = getVertex(x + 1,y,z, RIGHT_S, 0);
+                buffer[block_index + 1] = getVertex(x + 1, y, z + 1, RIGHT_E, 0);
+                buffer[block_index + 2] = getVertex(x + 1, y + 1, z, RIGHT_S, 1.0f);
 
-                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * x / BLOCK_COUNT_X;
-                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * (y + 1) / BLOCK_COUNT_Y;
-                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * z / BLOCK_COUNT_Z;
-                buffer[block_index + 2] = vertex;
+                buffer[block_index + 3] = getVertex(x + 1, y, z + 1, RIGHT_E, 0);
+                buffer[block_index + 4] = getVertex(x + 1, y + 1, z +1, RIGHT_E, 1.0f);
+                buffer[block_index + 5] = getVertex(x + 1, y + 1, z, RIGHT_S, 1.0f);
+                //left face of cube -----------------------------------------------------------
+                block_index += 6;
+                buffer[block_index + 0] = getVertex(x, y, z + 1, LEFT_S, 0);
+                buffer[block_index + 1] = getVertex(x, y, z, LEFT_E, 0);
+                buffer[block_index + 2] = getVertex(x, y + 1, z + 1, LEFT_S, 1.0f);
 
-                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * (x + 1) / BLOCK_COUNT_X;
-                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * (y + 1) / BLOCK_COUNT_Y;
-                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * z / BLOCK_COUNT_Z;
-                buffer[block_index + 3] = vertex;
-                //back of cube ----------------------------------------------------------
-                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * x / BLOCK_COUNT_X;
-                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * y / BLOCK_COUNT_Y;
-                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * (z + 1) / BLOCK_COUNT_Z;
-                buffer[block_index + 4] = vertex;
+                buffer[block_index + 3] = getVertex(x, y, z, LEFT_E, 0);
+                buffer[block_index + 4] = getVertex(x, y + 1, z, LEFT_E, 1.0f);
+                buffer[block_index + 5] = getVertex(x, y + 1, z + 1, LEFT_S, 1.0f);
+                //top face of cube ------------------------------------------------------------
+                block_index += 6;
+                buffer[block_index + 0] = getVertex(x, y, z + 1, TOP_S, 0);
+                buffer[block_index + 1] = getVertex(x + 1, y, z + 1, TOP_E, 0);
+                buffer[block_index + 2] = getVertex(x, y, z, TOP_S, 1.0f);
 
-                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * (x + 1) / BLOCK_COUNT_X;
-                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * y / BLOCK_COUNT_Y;
-                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * (z + 1) / BLOCK_COUNT_Z;
-                buffer[block_index + 5] = vertex;
+                buffer[block_index + 3] = getVertex(x + 1, y, z + 1, TOP_E, 0);
+                buffer[block_index + 4] = getVertex(x + 1, y, z, TOP_E, 1.0f);
+                buffer[block_index + 5] = getVertex(x, y, z, TOP_S, 1.0f);
+                //bottom face of cube ---------------------------------------------------------
+                block_index += 6;
+                buffer[block_index + 0] = getVertex(x, y + 1, z, BOTTOM_S, 0);
+                buffer[block_index + 1] = getVertex(x + 1, y + 1, z, BOTTOM_E, 0);
+                buffer[block_index + 2] = getVertex(x, y + 1, z + 1, BOTTOM_S, 1.0f);
 
-                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * x / BLOCK_COUNT_X;
-                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * (y + 1) / BLOCK_COUNT_Y;
-                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * (z + 1) / BLOCK_COUNT_Z;
-                buffer[block_index + 6] = vertex;
+                buffer[block_index + 3] = getVertex(x + 1, y + 1, z, BOTTOM_E, 0);
+                buffer[block_index + 4] = getVertex(x + 1, y + 1, z + 1, BOTTOM_E, 1.0f);
+                buffer[block_index + 5] = getVertex(x, y + 1, z + 1, BOTTOM_S, 1.0f);
+                //back of cube ----------------------------------------------------------------
+                block_index += 6;
+                buffer[block_index + 0] = getVertex(x + 1, y, z + 1, BACK_S, 0);
+                buffer[block_index + 1] = getVertex(x, y, z + 1, BACK_E, 0);
+                buffer[block_index + 2] = getVertex(x + 1, y + 1, z + 1, BACK_S, 1.0f);
 
-                vertex.x = x_coord_start + 2.0f * abs(x_coord_start) * (x + 1) / BLOCK_COUNT_X;
-                vertex.y = y_coord_start - 2.0f * abs(y_coord_start) * (y + 1) / BLOCK_COUNT_Y;
-                vertex.z = z_coord_start + 2.0f * abs(z_coord_start) * (z + 1) / BLOCK_COUNT_Z;
-                buffer[block_index + 7] = vertex;
+                buffer[block_index + 3] = getVertex(x, y, z + 1, BACK_E, 0);
+                buffer[block_index + 4] = getVertex(x, y + 1, z + 1, BACK_E, 1.0f);
+                buffer[block_index + 5] = getVertex(x + 1, y + 1, z + 1, BACK_S, 1.0f);
+
             }
         }
     }
@@ -200,54 +239,50 @@ void UpdateGpuMemory(Chunk* chunk, Chunk* leftNeighbour, Chunk* rightNeighbour, 
                 cube_indicies[index_offset + 1] = vertex_offset + 1;
                 cube_indicies[index_offset + 2] = vertex_offset + 2;
 
-                cube_indicies[index_offset + 3] = vertex_offset + 1;
-                cube_indicies[index_offset + 4] = vertex_offset + 3;
-                cube_indicies[index_offset + 5] = vertex_offset + 2;
-
+                cube_indicies[index_offset + 3] = vertex_offset + 3;
+                cube_indicies[index_offset + 4] = vertex_offset + 4;
+                cube_indicies[index_offset + 5] = vertex_offset + 5;
                 //right face 
-                cube_indicies[index_offset + 6] = vertex_offset + 1;
-                cube_indicies[index_offset + 7] = vertex_offset + 5;
-                cube_indicies[index_offset + 8] = vertex_offset + 3;
+                cube_indicies[index_offset + 6] = vertex_offset + 6;
+                cube_indicies[index_offset + 7] = vertex_offset + 7;
+                cube_indicies[index_offset + 8] = vertex_offset + 8;
 
-                cube_indicies[index_offset + 9] = vertex_offset + 5;
-                cube_indicies[index_offset + 10] = vertex_offset + 7;
-                cube_indicies[index_offset + 11] = vertex_offset + 3;
-
+                cube_indicies[index_offset + 9] = vertex_offset + 9;
+                cube_indicies[index_offset + 10] = vertex_offset + 10;
+                cube_indicies[index_offset + 11] = vertex_offset + 11;
                 //left face
-                cube_indicies[index_offset + 12] = vertex_offset + 4;
-                cube_indicies[index_offset + 13] = vertex_offset + 0;
-                cube_indicies[index_offset + 14] = vertex_offset + 6;
+                cube_indicies[index_offset + 12] = vertex_offset + 12;
+                cube_indicies[index_offset + 13] = vertex_offset + 13;
+                cube_indicies[index_offset + 14] = vertex_offset + 14;
 
-                cube_indicies[index_offset + 15] = vertex_offset + 0;
-                cube_indicies[index_offset + 16] = vertex_offset + 2;
-                cube_indicies[index_offset + 17] = vertex_offset + 6;
+                cube_indicies[index_offset + 15] = vertex_offset + 15 ;
+                cube_indicies[index_offset + 16] = vertex_offset + 16 ;
+                cube_indicies[index_offset + 17] = vertex_offset + 17 ;
+                //top face                                          
+                cube_indicies[index_offset + 18] = vertex_offset + 18 ;
+                cube_indicies[index_offset + 19] = vertex_offset + 19 ;
+                cube_indicies[index_offset + 20] = vertex_offset + 20 ;
+                                                                    
+                cube_indicies[index_offset + 21] = vertex_offset + 21 ;
+                cube_indicies[index_offset + 22] = vertex_offset + 22 ;
+                cube_indicies[index_offset + 23] = vertex_offset + 23 ;
+                //bottom face                                      
+                cube_indicies[index_offset + 24] = vertex_offset + 24 ;
+                cube_indicies[index_offset + 25] = vertex_offset + 25 ;
+                cube_indicies[index_offset + 26] = vertex_offset + 26 ;
+                                                                    
+                cube_indicies[index_offset + 27] = vertex_offset + 27 ;
+                cube_indicies[index_offset + 28] = vertex_offset + 28 ;
+                cube_indicies[index_offset + 29] = vertex_offset + 29 ;
+                //back face                                          
+                cube_indicies[index_offset + 30] = vertex_offset + 30 ;
+                cube_indicies[index_offset + 31] = vertex_offset + 31 ;
+                cube_indicies[index_offset + 32] = vertex_offset + 32 ;
+                                                                    
+                cube_indicies[index_offset + 33] = vertex_offset + 33 ;
+                cube_indicies[index_offset + 34] = vertex_offset + 34 ;
+                cube_indicies[index_offset + 35] = vertex_offset + 35 ;
 
-                //top face
-                cube_indicies[index_offset + 18] = vertex_offset + 4;
-                cube_indicies[index_offset + 19] = vertex_offset + 5;
-                cube_indicies[index_offset + 20] = vertex_offset + 0;
-
-                cube_indicies[index_offset + 21] = vertex_offset + 5;
-                cube_indicies[index_offset + 22] = vertex_offset + 1;
-                cube_indicies[index_offset + 23] = vertex_offset + 0;
-
-                //bottom face
-                cube_indicies[index_offset + 24] = vertex_offset +7;
-                cube_indicies[index_offset + 25] = vertex_offset + 6;
-                cube_indicies[index_offset + 26] = vertex_offset + 3;
-
-                cube_indicies[index_offset + 27] = vertex_offset + 6;
-                cube_indicies[index_offset + 28] = vertex_offset + 2;
-                cube_indicies[index_offset + 29] = vertex_offset + 3;
-
-                //back face
-                cube_indicies[index_offset + 30] = vertex_offset + 5;
-                cube_indicies[index_offset + 31] = vertex_offset + 4;
-                cube_indicies[index_offset + 32] = vertex_offset + 7;
-
-                cube_indicies[index_offset + 33] = vertex_offset + 4;
-                cube_indicies[index_offset + 34] = vertex_offset + 6;
-                cube_indicies[index_offset + 35] = vertex_offset + 7;
             }
         }
     }

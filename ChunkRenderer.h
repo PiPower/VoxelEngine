@@ -22,7 +22,6 @@ private:
 	ComPtr<ID3D12RootSignature> rootSignature;
 	ComPtr<ID3DBlob> vs_shaderBlob;
 	ComPtr<ID3DBlob> ps_shaderBlob;
-	ComPtr<ID3DBlob> gs_shaderBlob;
 	ComPtr<ID3D12Resource> test_vb;
 	const Camera* camera;
 	ComPtr<ID3D12Resource> texture;
