@@ -5,9 +5,14 @@ void processUserInput(Camera* cam, Window* window);
 
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+
+#if defined(_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
 	Window window(1600, 900, L"test", L"Voxel world");
 	ChunkRenderer renderer(window.GetWindowHWND());
-	ChunkGrid* grid = CreateChunkGrid(&renderer, 16, 16);
+	ChunkGrid* grid = CreateChunkGrid(&renderer, 4, 4);
 
 	Camera* cam = CreateCamera(&renderer, { 0,0,-2.5 }, { 0,0,1 }, { 0,1,0 });
 	renderer.BindCamera(cam);

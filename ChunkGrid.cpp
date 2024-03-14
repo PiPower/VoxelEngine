@@ -6,17 +6,7 @@ struct Vector2D
 };
 
 float interpolate(float a0, float a1, float w) {
-    /* // You may want clamping by inserting:
-     * if (0.0 > w) return a0;
-     * if (1.0 < w) return a1;
-     */
     return (a1 - a0) * ((w * (w * 6.0 - 15.0) + 10.0) * w * w * w) + a0;
-    /* // Use this cubic interpolation [[Smoothstep]] instead, for a smooth appearance:
-     * return (a1 - a0) * (3.0 - w * 2.0) * w * w + a0;
-     *
-     * // Use [[Smootherstep]] for an even smoother result with a second derivative equal to zero on boundaries:
-      return (a1 - a0) * ((w * (w * 6.0 - 15.0) + 10.0) * w * w * w) + a0;
-     */
 }
 
 Vector2D randomGradient(int ix, int iy)

@@ -6,6 +6,7 @@
 #include <random>
 #include "d3dx12.h"
 #include <comdef.h>
+#include <d3dcompiler.h>
 #include "d3dx12.h"
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
@@ -38,7 +39,6 @@ DeviceResources::DeviceResources(HWND hwnd,int frame_count)
     backBufferFormat(DXGI_FORMAT_R8G8B8A8_UNORM), DsvFormat(DXGI_FORMAT_D24_UNORM_S8_UINT)
 {
 #if defined(_DEBUG)
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     // Enable the D3D12 debug layer.
     {
         ComPtr<ID3D12Debug> debugController;
@@ -338,6 +338,30 @@ ID3D12DescriptorHeap* DeviceResources::CreateTextureDH(int count, ID3D12Resource
         handle.ptr = handle.ptr + cbv_srv_uav_heap_size;
     }
     return descriptor_heap;
+}
+
+void DeviceResources::CompileShader(ID3DBlob** blob, LPCWSTR pFileName, const D3D_SHADER_MACRO* pDefines, 
+                            ID3DInclude* pInclude, LPCSTR pEntrypoint, LPCSTR pTarget, UINT Flags1, UINT Flags2)
+{
+    ComPtr<ID3DBlob> error;
+    HRESULT hr;
+    hr = D3DCompileFromFile(pFileName, pDefines, pInclude, pEntrypoint, pTarget, Flags1, Flags2, blob, &error);
+    if (error.Get() != nullptr)
+    {
+        wchar_t error_code[400];
+        size_t char_count;
+        mbstowcs_s(&char_count, error_code, (400 / sizeof(WORD)) * sizeof(wchar_t), (char*)error->GetBufferPointer(), 400);
+        if (*blob == nullptr)
+        {
+            MessageBox(NULL, error_code, NULL, MB_OK);
+            exit(-1);
+        }
+        else
+        {
+            OutputDebugString(error_code);
+        }
+    }
+    NOT_SUCCEEDED(hr);
 }
 
 

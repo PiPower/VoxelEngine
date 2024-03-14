@@ -1,17 +1,20 @@
 #include "ChunkRenderer.h"
-#include <d3dcompiler.h>
 #include "d3dx12.h"
+#include <d3dcompiler.h>
+#include "ImageFile.h"
 
 ChunkRenderer::ChunkRenderer(HWND hwnd)
 	:
 	DeviceResources(hwnd)
 {
+	ComPtr<ID3D12Resource> uploadBuffer;
+
 	NOT_SUCCEEDED(CommandAllocator->Reset());
 	NOT_SUCCEEDED(CommandList->Reset(CommandAllocator.Get(), nullptr));
 	CompileShaders();
 	CreateRootSignature();
 	CreateLocalPipeline();
-
+	CreateTexture(&uploadBuffer);
 	NOT_SUCCEEDED(CommandList->Close());
 	ID3D12CommandList* ppCommandLists[] = { CommandList.Get() };
 	CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
@@ -49,6 +52,9 @@ void ChunkRenderer::StartRecording()
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	CommandList->SetGraphicsRootConstantBufferView(0, camera->CBuffer->GetGPUVirtualAddress());
+
+	CommandList->SetDescriptorHeaps(1, textureHeap.GetAddressOf());
+	CommandList->SetGraphicsRootDescriptorTable(2, textureHeap->GetGPUDescriptorHandleForHeapStart());
 }
 
 
@@ -101,7 +107,6 @@ void ChunkRenderer::Resize(HWND hwnd, void* renderer)
 
 void ChunkRenderer::CompileShaders()
 {
-	ComPtr<ID3DBlob> error;
 #if defined(_DEBUG)
 	// Enable better shader debugging with the graphics debugging tools.
 	UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -109,50 +114,33 @@ void ChunkRenderer::CompileShaders()
 	UINT compileFlags = 0;
 #endif
 
-	NOT_SUCCEEDED(D3DCompileFromFile(L"shaders.hlsl", NULL, NULL, "VS", "vs_5_0", compileFlags, 0, &vs_shaderBlob, &error));
-	if (error.Get() != nullptr)
-	{
-		wchar_t error_code[400];
-		size_t char_count;
-		mbstowcs_s(&char_count, error_code, (400 / sizeof(WORD)) * sizeof(wchar_t), (char*)error->GetBufferPointer(), 400);
-		if (vs_shaderBlob.Get() == nullptr)
-		{
-			MessageBox(NULL, error_code, NULL, MB_OK);
-			exit(-1);
-		}
-		else
-		{
-			OutputDebugString(error_code);
-		}
-	}
+	CompileShader(&vs_shaderBlob,L"shaders.hlsl", NULL, NULL, "VS", "vs_5_0", compileFlags, 0);
 
-	NOT_SUCCEEDED(D3DCompileFromFile(L"shaders.hlsl", NULL, NULL, "PS", "ps_5_0", compileFlags, 0, &ps_shaderBlob, &error));
-	if (error.Get() != nullptr)
-	{
-		wchar_t error_code[400];
-		size_t char_count;
-		mbstowcs_s(&char_count, error_code, (400 / sizeof(WORD)) * sizeof(wchar_t), (char*)error->GetBufferPointer(), 400);
-		if (ps_shaderBlob.Get() == nullptr)
-		{
-			MessageBox(NULL, error_code, NULL, MB_OK);
-			exit(-1);
-		}
-		else
-		{
-			OutputDebugString(error_code);
-		}
-	}
+	CompileShader(&ps_shaderBlob, L"shaders.hlsl", NULL, NULL, "PS", "ps_5_0", compileFlags, 0);
+
+	CompileShader(&gs_shaderBlob, L"shaders.hlsl", NULL, NULL, "GS", "gs_5_0", compileFlags, 0);
 }
 
 void ChunkRenderer::CreateRootSignature()
 {
 
-	CD3DX12_ROOT_PARAMETER1 rootSlots[2];
+	CD3DX12_DESCRIPTOR_RANGE1 texTable;
+	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+
+	CD3DX12_ROOT_PARAMETER1 rootSlots[3];
 	rootSlots[0].InitAsConstantBufferView(0);
 	rootSlots[1].InitAsConstantBufferView(1);
+	rootSlots[2].InitAsDescriptorTable(1, &texTable);
+
+	CD3DX12_STATIC_SAMPLER_DESC pointWrap(
+		0, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
 
 	CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-	rootSignatureDesc.Init_1_1(_countof(rootSlots), rootSlots, 0, nullptr,
+	rootSignatureDesc.Init_1_1(_countof(rootSlots), rootSlots, 1, &pointWrap,
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> signature;
@@ -180,6 +168,7 @@ void ChunkRenderer::CreateLocalPipeline()
 	psoDesc.pRootSignature = rootSignature.Get();
 	psoDesc.VS = { vs_shaderBlob->GetBufferPointer(), vs_shaderBlob->GetBufferSize() };
 	psoDesc.PS = { ps_shaderBlob->GetBufferPointer(), ps_shaderBlob->GetBufferSize() };
+	psoDesc.GS = { gs_shaderBlob->GetBufferPointer(), gs_shaderBlob->GetBufferSize() };
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	psoDesc.RasterizerState.AntialiasedLineEnable = TRUE;
@@ -193,4 +182,63 @@ void ChunkRenderer::CreateLocalPipeline()
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = DsvFormat;
 	NOT_SUCCEEDED(Device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&graphicsPipeline)));
+}
+
+void ChunkRenderer::CreateTexture(ID3D12Resource** uploadBuffer)
+{
+	ImageFile image(L"./texture.png");
+	CreateTexture2D(&texture, image.GetWidth(), image.GetHeight(), 1, D3D12_RESOURCE_FLAG_NONE, DXGI_FORMAT_R8G8B8A8_UNORM);
+	CreateTextureDH(&textureHeap,1, texture.GetAddressOf());
+
+	UINT64 bufferSize;
+
+	textureLocation.pResource = texture.Get();
+	textureLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	textureLocation.SubresourceIndex = 0;
+
+	D3D12_RESOURCE_DESC textureDesc = texture->GetDesc();
+	Device->GetCopyableFootprints(&textureDesc, 0, 1, 0, &bufferLocation.PlacedFootprint, nullptr, nullptr, &bufferSize);
+
+	TextureData = new unsigned char[bufferSize]; // dim, dim, channel, faces
+	for (int y = 0; y < image.GetHeight(); y++)
+	{
+		for (int x = 0; x < image.GetWidth(); x++)
+		{
+			int index = y * bufferLocation.PlacedFootprint.Footprint.RowPitch + x * 4;
+			unsigned int colorData = image.GetColorAt(x, y);
+			memcpy(TextureData + index, &colorData, sizeof(unsigned int));
+			//data format BGRA
+			//TextureData[index + 0] = (unsigned char) ((colorData >> 16 ) & 0xFF); 
+			//TextureData[index + 1] = (unsigned char)((colorData >> 8) & 0xFF);
+			//TextureData[index + 2] = (unsigned char)((colorData >> 0) & 0xFF);
+			//TextureData[index + 3] = (unsigned char)((colorData >> 24) & 0xFF);
+		}
+	}
+
+
+	UINT* mapPtr;
+	CreateUploadBuffer(uploadBuffer, bufferSize);
+	(*uploadBuffer)->Map(0, nullptr, (void**)&mapPtr);
+	memcpy(mapPtr, TextureData, bufferSize);
+	
+	bufferLocation.pResource = (*uploadBuffer);
+	bufferLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+
+	// copy buffer to texture
+	transitionTable[0] = CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(),
+		D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
+	transitionTable[1] = CD3DX12_RESOURCE_BARRIER::Transition((*uploadBuffer),
+		D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_SOURCE);
+
+	//reverse ubove transition
+	transitionTable[2] = CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(),
+		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
+	transitionTable[3] = CD3DX12_RESOURCE_BARRIER::Transition((*uploadBuffer),
+		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_GENERIC_READ);
+
+	CommandList->ResourceBarrier(2, transitionTable);
+	CommandList->CopyTextureRegion(&textureLocation, 0, 0, 0, &bufferLocation, nullptr);
+	CommandList->ResourceBarrier(2, transitionTable + 2);
+
+	//delete[] TextureData;
 }

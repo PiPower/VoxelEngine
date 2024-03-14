@@ -134,6 +134,7 @@
     <ClCompile Include="ChunkGrid.cpp" />
     <ClCompile Include="ChunkRenderer.cpp" />
     <ClCompile Include="DeviceResources.cpp" />
+    <ClCompile Include="ImageFile.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
@@ -144,6 +145,7 @@
     <ClInclude Include="ChunkRenderer.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DeviceResources.h" />
+    <ClInclude Include="ImageFile.h" />
     <ClInclude Include="window.h" />
   </ItemGroup>
   <ItemGroup>

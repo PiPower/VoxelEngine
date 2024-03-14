@@ -223,31 +223,31 @@ void UpdateGpuMemory(Chunk* chunk, Chunk* leftNeighbour, Chunk* rightNeighbour, 
                 cube_indicies[index_offset + 17] = vertex_offset + 6;
 
                 //top face
-                cube_indicies[index_offset + 18] = vertex_offset + 0;
-                cube_indicies[index_offset + 19] = vertex_offset + 4;
-                cube_indicies[index_offset + 20] = vertex_offset + 5;
+                cube_indicies[index_offset + 18] = vertex_offset + 4;
+                cube_indicies[index_offset + 19] = vertex_offset + 5;
+                cube_indicies[index_offset + 20] = vertex_offset + 0;
 
-                cube_indicies[index_offset + 21] = vertex_offset + 0;
-                cube_indicies[index_offset + 22] = vertex_offset + 5;
-                cube_indicies[index_offset + 23] = vertex_offset + 1;
+                cube_indicies[index_offset + 21] = vertex_offset + 5;
+                cube_indicies[index_offset + 22] = vertex_offset + 1;
+                cube_indicies[index_offset + 23] = vertex_offset + 0;
 
                 //bottom face
-                cube_indicies[index_offset + 24] = vertex_offset + 2;
-                cube_indicies[index_offset + 25] = vertex_offset + 7;
-                cube_indicies[index_offset + 26] = vertex_offset + 6;
+                cube_indicies[index_offset + 24] = vertex_offset +7;
+                cube_indicies[index_offset + 25] = vertex_offset + 6;
+                cube_indicies[index_offset + 26] = vertex_offset + 3;
 
-                cube_indicies[index_offset + 27] = vertex_offset + 2;
-                cube_indicies[index_offset + 28] = vertex_offset + 3;
-                cube_indicies[index_offset + 29] = vertex_offset + 7;
+                cube_indicies[index_offset + 27] = vertex_offset + 6;
+                cube_indicies[index_offset + 28] = vertex_offset + 2;
+                cube_indicies[index_offset + 29] = vertex_offset + 3;
 
                 //back face
-                cube_indicies[index_offset + 30] = vertex_offset + 6;
-                cube_indicies[index_offset + 31] = vertex_offset + 5;
-                cube_indicies[index_offset + 32] = vertex_offset + 4;
+                cube_indicies[index_offset + 30] = vertex_offset + 5;
+                cube_indicies[index_offset + 31] = vertex_offset + 4;
+                cube_indicies[index_offset + 32] = vertex_offset + 7;
 
-                cube_indicies[index_offset + 33] = vertex_offset + 7;
-                cube_indicies[index_offset + 34] = vertex_offset + 5;
-                cube_indicies[index_offset + 35] = vertex_offset + 6;
+                cube_indicies[index_offset + 33] = vertex_offset + 4;
+                cube_indicies[index_offset + 34] = vertex_offset + 6;
+                cube_indicies[index_offset + 35] = vertex_offset + 7;
             }
         }
     }
