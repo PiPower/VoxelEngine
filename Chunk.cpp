@@ -1,7 +1,11 @@
 #include "Chunk.h"
 #include <random>
 
+/*
+Chunk starts at (-X, Y, -Z) ie backward top leftmost corner
+y=0 means is top of the chunk
 
+*/
 #define FRONT_S (1.0f/3.0f)
 #define FRONT_E (2.0f/3.0f)
 #define RIGHT_S (1.0f/3.0f)
@@ -136,8 +140,15 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
             {
                 int index = z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x;
                 int airLevel = newChunk->heightMap[z * BLOCK_COUNT_X + x];
-                newChunk->blockGrid[index] = y < airLevel ? BlockType::grass : BlockType::air;
-                
+                if (y < airLevel)
+                {
+                    newChunk->blockGrid[index] = BlockType::air;
+                }
+                else
+                {
+                   newChunk->blockGrid[index] = BlockType::grass;
+                }
+
             }
         }
     }
@@ -211,83 +222,100 @@ void UpdateGpuMemory(Chunk* chunk, Chunk* leftNeighbour, Chunk* rightNeighbour, 
                     continue;
                 }
 
-                bool xAxisShown = (x < BLOCK_COUNT_X - 1 ?
-                    GetBlockType(chunk, x + 1, y, z) == BlockType::air : GetBlockType(rightNeighbour, 0, y, z) == BlockType::air)
-                    || (x > 0 ?
-                        GetBlockType(chunk, x - 1, y, z) == BlockType::air : GetBlockType(leftNeighbour, BLOCK_COUNT_X - 1, y, z) == BlockType::air);
-
-                bool yAxisShown = (y < BLOCK_COUNT_Y - 1 ? GetBlockType(chunk, x, y + 1, z) == BlockType::air : false)
-                    || (y > 0 ? GetBlockType(chunk, x, y - 1, z) == BlockType::air : false);
-
-                bool zAxisShown = (z < BLOCK_COUNT_Z - 1 ?
-                    GetBlockType(chunk, x, y, z + 1) == BlockType::air : GetBlockType(frontNeighbour, x, y, 0) == BlockType::air)
-                    || (z > 0 ?
-                        GetBlockType(chunk, x, y, z - 1) == BlockType::air : GetBlockType(backNeighbour, x, y, BLOCK_COUNT_Z - 1) == BlockType::air);
-
-                if ((!(xAxisShown || yAxisShown || zAxisShown)))
-                {
-                    continue;
-                }
-
                 unsigned int currentBlock = z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x;
                 unsigned int vertex_offset = VERTECIES_PER_CUBE * currentBlock;
 
-                unsigned int index_offset = INDECIES_PER_CUBE * storedBlockIndicies;
-                storedBlockIndicies++;
-                //front face
-                cube_indicies[index_offset + 0] = vertex_offset + 0;
-                cube_indicies[index_offset + 1] = vertex_offset + 1;
-                cube_indicies[index_offset + 2] = vertex_offset + 2;
+                unsigned int index_offset;
 
-                cube_indicies[index_offset + 3] = vertex_offset + 3;
-                cube_indicies[index_offset + 4] = vertex_offset + 4;
-                cube_indicies[index_offset + 5] = vertex_offset + 5;
-                //right face 
-                cube_indicies[index_offset + 6] = vertex_offset + 6;
-                cube_indicies[index_offset + 7] = vertex_offset + 7;
-                cube_indicies[index_offset + 8] = vertex_offset + 8;
+                if (z > 0 ?
+                    GetBlockType(chunk, x, y, z - 1) == BlockType::air : GetBlockType(frontNeighbour, x, y, BLOCK_COUNT_Z -1 ) == BlockType::air )
+                {
+                    //front face
+                    index_offset = storedBlockIndicies;
+                    storedBlockIndicies += 6;
+                    cube_indicies[index_offset + 0] = vertex_offset + 0;
+                    cube_indicies[index_offset + 1] = vertex_offset + 1;
+                    cube_indicies[index_offset + 2] = vertex_offset + 2;
 
-                cube_indicies[index_offset + 9] = vertex_offset + 9;
-                cube_indicies[index_offset + 10] = vertex_offset + 10;
-                cube_indicies[index_offset + 11] = vertex_offset + 11;
-                //left face
-                cube_indicies[index_offset + 12] = vertex_offset + 12;
-                cube_indicies[index_offset + 13] = vertex_offset + 13;
-                cube_indicies[index_offset + 14] = vertex_offset + 14;
+                    cube_indicies[index_offset + 3] = vertex_offset + 3;
+                    cube_indicies[index_offset + 4] = vertex_offset + 4;
+                    cube_indicies[index_offset + 5] = vertex_offset + 5;
+                }
+                if (x < BLOCK_COUNT_X - 1 ?
+                    GetBlockType(chunk, x + 1, y, z) == BlockType::air : GetBlockType(rightNeighbour, 0, y, z) == BlockType::air)
+                {
+                    //right face 
+                    index_offset = storedBlockIndicies;
+                    storedBlockIndicies += 6;
+                    cube_indicies[index_offset + 0] = vertex_offset + 6;
+                    cube_indicies[index_offset + 1] = vertex_offset + 7;
+                    cube_indicies[index_offset + 2] = vertex_offset + 8;
 
-                cube_indicies[index_offset + 15] = vertex_offset + 15 ;
-                cube_indicies[index_offset + 16] = vertex_offset + 16 ;
-                cube_indicies[index_offset + 17] = vertex_offset + 17 ;
-                //top face                                          
-                cube_indicies[index_offset + 18] = vertex_offset + 18 ;
-                cube_indicies[index_offset + 19] = vertex_offset + 19 ;
-                cube_indicies[index_offset + 20] = vertex_offset + 20 ;
-                                                                    
-                cube_indicies[index_offset + 21] = vertex_offset + 21 ;
-                cube_indicies[index_offset + 22] = vertex_offset + 22 ;
-                cube_indicies[index_offset + 23] = vertex_offset + 23 ;
-                //bottom face                                      
-                cube_indicies[index_offset + 24] = vertex_offset + 24 ;
-                cube_indicies[index_offset + 25] = vertex_offset + 25 ;
-                cube_indicies[index_offset + 26] = vertex_offset + 26 ;
-                                                                    
-                cube_indicies[index_offset + 27] = vertex_offset + 27 ;
-                cube_indicies[index_offset + 28] = vertex_offset + 28 ;
-                cube_indicies[index_offset + 29] = vertex_offset + 29 ;
-                //back face                                          
-                cube_indicies[index_offset + 30] = vertex_offset + 30 ;
-                cube_indicies[index_offset + 31] = vertex_offset + 31 ;
-                cube_indicies[index_offset + 32] = vertex_offset + 32 ;
-                                                                    
-                cube_indicies[index_offset + 33] = vertex_offset + 33 ;
-                cube_indicies[index_offset + 34] = vertex_offset + 34 ;
-                cube_indicies[index_offset + 35] = vertex_offset + 35 ;
+                    cube_indicies[index_offset + 3] = vertex_offset + 9;
+                    cube_indicies[index_offset + 4] = vertex_offset + 10;
+                    cube_indicies[index_offset + 5] = vertex_offset + 11;
+                }
+                if (x > 0 ?
+                    GetBlockType(chunk, x - 1, y, z) == BlockType::air : GetBlockType(leftNeighbour, BLOCK_COUNT_X - 1, y, z) == BlockType::air)
+                {
+                    //left face
+                    index_offset = storedBlockIndicies;
+                    storedBlockIndicies += 6;
+                    cube_indicies[index_offset + 0] = vertex_offset + 12;
+                    cube_indicies[index_offset + 1] = vertex_offset + 13;
+                    cube_indicies[index_offset + 2] = vertex_offset + 14;
+
+                    cube_indicies[index_offset + 3] = vertex_offset + 15;
+                    cube_indicies[index_offset + 4] = vertex_offset + 16;
+                    cube_indicies[index_offset + 5] = vertex_offset + 17;
+                }
+                if (y > 0 ? GetBlockType(chunk, x, y - 1, z) == BlockType::air : false)
+                {
+                    //top face     
+                    index_offset = storedBlockIndicies;
+                    storedBlockIndicies += 6;
+                    cube_indicies[index_offset + 0] = vertex_offset + 18;
+                    cube_indicies[index_offset + 1] = vertex_offset + 19;
+                    cube_indicies[index_offset + 2] = vertex_offset + 20;
+
+                    cube_indicies[index_offset + 3] = vertex_offset + 21;
+                    cube_indicies[index_offset + 4] = vertex_offset + 22;
+                    cube_indicies[index_offset + 5] = vertex_offset + 23;
+                }
+                if (y < BLOCK_COUNT_Y - 1 ? GetBlockType(chunk, x, y + 1, z) == BlockType::air : false)
+                {
+                    //bottom face
+                    index_offset = storedBlockIndicies;
+                    storedBlockIndicies += 6;
+                    cube_indicies[index_offset + 0] = vertex_offset + 24;
+                    cube_indicies[index_offset + 1] = vertex_offset + 25;
+                    cube_indicies[index_offset + 2] = vertex_offset + 26;
+
+                    cube_indicies[index_offset + 3] = vertex_offset + 27;
+                    cube_indicies[index_offset + 4] = vertex_offset + 28;
+                    cube_indicies[index_offset + 5] = vertex_offset + 29;
+                }
+                  
+                if (z < BLOCK_COUNT_Z - 1  ?
+                    GetBlockType(chunk, x, y, z + 1) == BlockType::air : GetBlockType(backNeighbour, x, y, 0) == BlockType::air)
+                {
+                    //back face  
+                    index_offset = storedBlockIndicies;
+                    storedBlockIndicies += 6;
+                    cube_indicies[index_offset + 0] = vertex_offset + 30;
+                    cube_indicies[index_offset + 1] = vertex_offset + 31;
+                    cube_indicies[index_offset + 2] = vertex_offset + 32;
+
+                    cube_indicies[index_offset + 3] = vertex_offset + 33;
+                    cube_indicies[index_offset + 4] = vertex_offset + 34;
+                    cube_indicies[index_offset + 5] = vertex_offset + 35;
+                }
 
             }
         }
     }
-    chunk->indexCount = INDECIES_PER_CUBE * storedBlockIndicies;
-    chunk->indexView.SizeInBytes = INDECIES_PER_CUBE * storedBlockIndicies * sizeof(unsigned int);
+    chunk->indexCount = storedBlockIndicies;
+    chunk->indexView.SizeInBytes = storedBlockIndicies * sizeof(unsigned int);
     memcpy(chunk->indexMap, cube_indicies, chunk->indexView.SizeInBytes);
     delete[] cube_indicies;
 }

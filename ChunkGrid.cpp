@@ -139,8 +139,8 @@ ChunkGrid* CreateChunkGrid(DeviceResources* device, unsigned int X_halfWidth, un
             Chunk* leftNeighbour = x > -(int)X_halfWidth ? grid->gridOfChunks[gridIndex - 1] : nullptr;
             Chunk* rightNeighbour = x < (int)X_halfWidth ? grid->gridOfChunks[gridIndex + 1] : nullptr;
 
-            Chunk* backNeighbour = z > -(int)Z_halfWidth ? grid->gridOfChunks[gridIndex - (X_halfWidth * 2 + 1)] : nullptr;
-            Chunk* frontNeighbour =  z < (int)Z_halfWidth ? grid->gridOfChunks[gridIndex + (X_halfWidth * 2 + 1)] : nullptr;
+            Chunk* frontNeighbour = z > -(int)Z_halfWidth ? grid->gridOfChunks[gridIndex - (X_halfWidth * 2 + 1)] : nullptr;
+            Chunk* backNeighbour =  z < (int)Z_halfWidth ? grid->gridOfChunks[gridIndex + (X_halfWidth * 2 + 1)] : nullptr;
 
             UpdateGpuMemory(grid->gridOfChunks[gridIndex], leftNeighbour, rightNeighbour, backNeighbour, frontNeighbour);
 
