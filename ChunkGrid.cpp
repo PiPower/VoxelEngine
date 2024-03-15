@@ -1,5 +1,10 @@
 #include "ChunkGrid.h"
 #include <random>
+
+#define THREAD_COUNT 4
+SYNCHRONIZATION_BARRIER cpuBarrier;
+
+
 struct Vector2D
 {
     float x, y;
@@ -78,7 +83,7 @@ float perlinStep(float grid_x, float grid_z)
     return value;
 }
 std::vector<int> GetHeightLevelsForChunk(unsigned int x_coord, unsigned int z_coord, 
-                                    unsigned int x_size, unsigned int z_size, Vector2D* vectorGrid)
+                                    unsigned int x_size, unsigned int z_size)
 {
     std::vector<int> out;
 
@@ -108,43 +113,92 @@ std::vector<int> GetHeightLevelsForChunk(unsigned int x_coord, unsigned int z_co
     return out;
 }
 
+struct ThreadData
+{
+    unsigned int threadCount;
+    int startX;
+    int startZ;
+    int limitX;
+    int limitZ;
+    unsigned int X_halfWidth;
+    unsigned int Z_halfWidth;
+    DeviceResources* device;
+    ChunkGrid* grid;
+};
+DWORD _stdcall ThreadCreateChunks(void* threadDataVoid)
+{
+
+    ThreadData* threadData = (ThreadData * )threadDataVoid;
+    ChunkGrid* grid = threadData->grid;
+    unsigned int X_halfWidth = threadData->X_halfWidth;
+    unsigned int Z_halfWidth = threadData->Z_halfWidth;
+
+    for (int z = threadData->startZ; z <= threadData->limitZ; z++)
+    {
+        for (int x = threadData->startX; x <= threadData->limitX; x += threadData->threadCount)
+        {
+            int gridIndex = (z + (int)threadData->Z_halfWidth) * 
+                            (threadData->X_halfWidth * 2 + 1) + (x + (int)threadData->X_halfWidth);
+
+            std::vector<int> heightLevels = GetHeightLevelsForChunk(x + (int)threadData->X_halfWidth,
+                z + (int)threadData->Z_halfWidth, threadData->X_halfWidth * 2 + 1, 2 * threadData->Z_halfWidth + 1);
+
+            threadData->grid->gridOfChunks[gridIndex] = CreateChunk(threadData->device, x, z, heightLevels);
+        }
+    }
+
+    EnterSynchronizationBarrier(&cpuBarrier, SYNCHRONIZATION_BARRIER_FLAGS_SPIN_ONLY);
+
+
+    for (int z = threadData->startZ; z <= threadData->limitZ; z++)
+    {
+        for (int x = threadData->startX; x <= threadData->limitX; x += threadData->threadCount)
+        {
+            int gridIndex = (z + (int)threadData->Z_halfWidth) * (X_halfWidth * 2 + 1) + (x + (int)X_halfWidth);
+            Chunk* leftNeighbour = x > -(int)X_halfWidth ? grid->gridOfChunks[gridIndex - 1] : nullptr;
+            Chunk* rightNeighbour = x < (int)X_halfWidth ? grid->gridOfChunks[gridIndex + 1] : nullptr;
+
+            Chunk* frontNeighbour = z > -(int)Z_halfWidth ? grid->gridOfChunks[gridIndex - (X_halfWidth * 2 + 1)] : nullptr;
+            Chunk* backNeighbour = z < (int)Z_halfWidth ? grid->gridOfChunks[gridIndex + (X_halfWidth * 2 + 1)] : nullptr;
+
+            UpdateGpuMemory(grid->gridOfChunks[gridIndex], leftNeighbour, rightNeighbour, backNeighbour, frontNeighbour);
+        }
+    }
+
+    return TRUE;
+}
+
 
 //blocks are stored in form back-front, left-right
 ChunkGrid* CreateChunkGrid(DeviceResources* device, unsigned int X_halfWidth, unsigned int Z_halfWidth)
 {
+    InitMultithreadingResources();
+    InitializeSynchronizationBarrier(&cpuBarrier, THREAD_COUNT, 2000);
+
     ChunkGrid* grid = new ChunkGrid();
     grid->X_halfWidth = X_halfWidth;
     grid->Z_halfWidth = Z_halfWidth;
     grid->totalChunks = (X_halfWidth * 2 + 1) * (2 * Z_halfWidth + 1);
     grid->gridOfChunks = new Chunk*[grid->totalChunks];
-    Vector2D* gridOfNoiseVec = generateNoiseVec(X_halfWidth * 2 + 1, 2 * Z_halfWidth + 1);
 
-    for(int z = -(int)Z_halfWidth ; z <= (int)Z_halfWidth; z++)
+    HANDLE threadHandles[THREAD_COUNT];
+    for (int threadId = 0; threadId < THREAD_COUNT; threadId++)
     {
-        for (int x = -(int)X_halfWidth; x <= (int)X_halfWidth; x++)
-        {
-            int gridIndex = (z + (int)Z_halfWidth) * (X_halfWidth * 2 + 1) + (x + (int)X_halfWidth);
-            std::vector<int> heightLevels = GetHeightLevelsForChunk(x + (int)X_halfWidth, 
-                        z + (int)Z_halfWidth, X_halfWidth * 2 + 1, 2 * Z_halfWidth + 1, gridOfNoiseVec);
+        ThreadData* perThreadData = new ThreadData;
+        perThreadData->threadCount = THREAD_COUNT;
+        perThreadData->startX = threadId - (int)X_halfWidth;
+        perThreadData->startZ = -(int)Z_halfWidth;
+        perThreadData->limitX = (int)X_halfWidth;
+        perThreadData->limitZ = (int)Z_halfWidth;
+        perThreadData->X_halfWidth = X_halfWidth;
+        perThreadData->Z_halfWidth = Z_halfWidth;
+        perThreadData->device = device;
+        perThreadData->grid = grid;
 
-            grid->gridOfChunks[gridIndex] = CreateChunk(device, x, z, heightLevels);
-        }
+        threadHandles[threadId] = CreateThread(NULL, 0, ThreadCreateChunks, perThreadData, 0, NULL);
     }
 
-    for (int z = -(int)Z_halfWidth; z <= (int)Z_halfWidth; z++)
-    {
-        for (int x = -(int)X_halfWidth; x <= (int)X_halfWidth; x++)
-        {
-            int gridIndex = (z + (int)Z_halfWidth) * (X_halfWidth * 2 + 1) + (x + (int)X_halfWidth);
-            Chunk* leftNeighbour = x > -(int)X_halfWidth ? grid->gridOfChunks[gridIndex - 1] : nullptr;
-            Chunk* rightNeighbour = x < (int)X_halfWidth ? grid->gridOfChunks[gridIndex + 1] : nullptr;
+    WaitForMultipleObjects(THREAD_COUNT, threadHandles, true, INFINITE);
 
-            Chunk* frontNeighbour = z > -(int)Z_halfWidth ? grid->gridOfChunks[gridIndex - (X_halfWidth * 2 + 1)] : nullptr;
-            Chunk* backNeighbour =  z < (int)Z_halfWidth ? grid->gridOfChunks[gridIndex + (X_halfWidth * 2 + 1)] : nullptr;
-
-            UpdateGpuMemory(grid->gridOfChunks[gridIndex], leftNeighbour, rightNeighbour, backNeighbour, frontNeighbour);
-
-        }
-    }
     return grid;
 }

@@ -25,10 +25,13 @@ constexpr float x_coord_start = -1.0f;
 constexpr float y_coord_start = (float)BLOCK_COUNT_Y / BLOCK_COUNT_X;
 constexpr float z_coord_start = -(float)BLOCK_COUNT_Z / BLOCK_COUNT_X;
 
-bool Chunk::isVertexBufferInitialized = false;
+volatile bool Chunk::isVertexBufferInitialized = false;
 ComPtr<ID3D12Resource> Chunk::memoryForBlocksVertecies;
 D3D12_VERTEX_BUFFER_VIEW Chunk::vertexView = {};
 DevicePointer Chunk::vertexMap = nullptr;
+
+HANDLE vertexBufferWriteMutex = nullptr;
+
 
 static Vertex getVertex(int x, int y, int z, float u, float v)
 {
@@ -148,7 +151,6 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
                 {
                    newChunk->blockGrid[index] = BlockType::grass;
                 }
-
             }
         }
     }
@@ -173,8 +175,24 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
     newChunk->cbufferHost.chunkOffsetZ = 2 * abs(z_coord_start) * z_grid_coord;
     memcpy(newChunk->cbufferMap, &newChunk->cbufferHost, sizeof(ChunkCbuffer));
 
-    if (!newChunk->isVertexBufferInitialized)
+    if (!Chunk::isVertexBufferInitialized)
     {
+        DWORD status = WaitForSingleObject(vertexBufferWriteMutex, INFINITE);
+        switch (status == WAIT_ABANDONED)
+        {
+        case WAIT_ABANDONED:
+            OutputDebugString(L"Mutex for chunk was not realesed, possible memory corruption \n");
+            exit(-1);
+        case WAIT_FAILED:
+            OutputDebugString(L"Mutex lock error \n");
+            exit(GetLastError());
+        }
+
+        if (Chunk::isVertexBufferInitialized)
+        {
+            goto finished;
+        }
+
         newChunk->vertexView.SizeInBytes = BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * VERTECIES_PER_CUBE * sizeof(Vertex);
 
         device->CreateUploadBuffer(&newChunk->memoryForBlocksVertecies, BLOCK_COUNT_X *
@@ -187,7 +205,9 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
         newChunk->vertexView.BufferLocation = newChunk->memoryForBlocksVertecies->GetGPUVirtualAddress();
         newChunk->vertexView.StrideInBytes = sizeof(Vertex);
 
-        newChunk->isVertexBufferInitialized = true;
+        Chunk::isVertexBufferInitialized = true;
+    finished: 
+        ReleaseMutex(vertexBufferWriteMutex);
     }
 
     newChunk->boundingVolume.sphereCenter = XMFLOAT3{ 
@@ -202,6 +222,7 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
 BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned int z)
 {
     if (chunk == nullptr) return BlockType::grass;//to show world edges change to air
+    
     return chunk->blockGrid[z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x];
 }
 
@@ -215,6 +236,7 @@ void UpdateGpuMemory(Chunk* chunk, Chunk* leftNeighbour, Chunk* rightNeighbour, 
     {
         for (int y = 0; y < BLOCK_COUNT_Y; y++)
         {
+
             for (int x = 0; x < BLOCK_COUNT_X; x++)
             {
                 if (GetBlockType(chunk, x, y, z) == BlockType::air)
@@ -318,4 +340,9 @@ void UpdateGpuMemory(Chunk* chunk, Chunk* leftNeighbour, Chunk* rightNeighbour, 
     chunk->indexView.SizeInBytes = storedBlockIndicies * sizeof(unsigned int);
     memcpy(chunk->indexMap, cube_indicies, chunk->indexView.SizeInBytes);
     delete[] cube_indicies;
+}
+
+void InitMultithreadingResources()
+{
+    vertexBufferWriteMutex = CreateMutexA(NULL, FALSE, NULL);
 }

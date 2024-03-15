@@ -40,12 +40,13 @@ struct BoundingVolumeSphere
 typedef void* DevicePointer;
 struct Chunk
 {
-	BlockType* blockGrid;
-	static bool isVertexBufferInitialized;
+	static volatile bool isVertexBufferInitialized;
 	static ComPtr<ID3D12Resource> memoryForBlocksVertecies;
+	static DevicePointer vertexMap;
+
+	BlockType* blockGrid;
 	ComPtr<ID3D12Resource> memoryForBlocksIndecies;
 	ComPtr<ID3D12Resource> cbuffer;
-	static DevicePointer vertexMap;
 	DevicePointer indexMap;
 	DevicePointer cbufferMap;
 	UINT indexCount;
@@ -61,3 +62,4 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord = 0, int z_grid_coo
 BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned int z);
 void UpdateGpuMemory(Chunk * chunk, Chunk* leftNeighbour = nullptr,
 					Chunk* rightNeighbour = nullptr, Chunk* backNeighbour = nullptr, Chunk* frontNeighbour = nullptr);
+void InitMultithreadingResources();
