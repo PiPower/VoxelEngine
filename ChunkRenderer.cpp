@@ -71,8 +71,17 @@ void ChunkRenderer::DrawGridOfChunks(ChunkGrid* grid, Camera* cam)
 	CommandList->IASetVertexBuffers(0, 1, &grid->gridOfChunks[0]->vertexView);
 	for (int i = 0; i < grid->totalRenderableChunks; i++)
 	{
-		Chunk* chunk = GetNthRenderableChunkFromCameraPos(grid, 0, 0, i);
-		if (!IsInFrustum(&chunk->boundingVolume, this->camera)) { continue; }
+		Chunk* chunk = GetNthRenderableChunkFromCameraPos(grid, cam->eyePos.x, cam->eyePos.z, i);
+
+		if (chunk==nullptr)
+		{
+			XMINT2 chunkPos = GetGridCoordsFromRenderingChunkIndex(grid, cam->eyePos.x, cam->eyePos.z, i);
+			GenerateChunk(this, grid, chunkPos.x, chunkPos.y);
+			continue;
+		}
+
+
+		if (!chunk->drawable || !IsInFrustum(&chunk->boundingVolume, this->camera)) { continue; }
 
 		CommandList->IASetIndexBuffer(&chunk->indexView);
 		CommandList->SetGraphicsRootConstantBufferView(1, chunk->cbuffer->GetGPUVirtualAddress());
@@ -240,5 +249,5 @@ void ChunkRenderer::CreateTexture(ID3D12Resource** uploadBuffer)
 	CommandList->CopyTextureRegion(&textureLocation, 0, 0, 0, &bufferLocation, nullptr);
 	CommandList->ResourceBarrier(2, transitionTable + 2);
 
-	//delete[] TextureData;
+	delete[] TextureData;
 }

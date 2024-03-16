@@ -151,30 +151,18 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
         }
     }
 
-    device->CreateUploadBuffer(&newChunk->memoryForBlocksIndecies, BLOCK_COUNT_X *
-        BLOCK_COUNT_Y * BLOCK_COUNT_Z * sizeof(unsigned int) * INDECIES_PER_CUBE);
-
     int cbufferSize = ceil(sizeof(ChunkCbuffer) / 256.0f) * 256;
     device->CreateUploadBuffer(&newChunk->cbuffer, cbufferSize);
-
     D3D12_RANGE readRange{ 0,0 };
-    newChunk->memoryForBlocksIndecies->Map(0, &readRange, &newChunk->indexMap);
     newChunk->cbuffer->Map(0, &readRange, &newChunk->cbufferMap);
 
-    newChunk->indexCount = 0;
-
-    newChunk->indexView.BufferLocation = newChunk->memoryForBlocksIndecies->GetGPUVirtualAddress();
-    newChunk->indexView.Format = DXGI_FORMAT_R32_UINT;
-    newChunk->indexView.SizeInBytes = BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z * sizeof(unsigned int) * INDECIES_PER_CUBE;
-    
     newChunk->cbufferHost.chunkOffsetX = 2 * abs(x_coord_start) * x_grid_coord;
     newChunk->cbufferHost.chunkOffsetZ = 2 * abs(z_coord_start) * z_grid_coord;
     memcpy(newChunk->cbufferMap, &newChunk->cbufferHost, sizeof(ChunkCbuffer));
-
     if (!Chunk::isVertexBufferInitialized)
     {
         DWORD status = WaitForSingleObject(vertexBufferWriteMutex, INFINITE);
-        switch (status == WAIT_ABANDONED)
+        switch (status)
         {
         case WAIT_ABANDONED:
             OutputDebugString(L"Mutex for chunk was not realesed, possible memory corruption \n");
@@ -212,6 +200,7 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
         newChunk->cbufferHost.chunkOffsetZ 
     };
     newChunk->boundingVolume.sphereRadius = sqrt( pow(x_coord_start, 2) + pow(y_coord_start, 2) + pow(z_coord_start, 2) );
+    newChunk->drawable = false;
     return newChunk;
 }
 
@@ -222,7 +211,8 @@ BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned in
     return chunk->blockGrid[z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x];
 }
 
-void UpdateGpuMemory(Chunk* chunk, Chunk* leftNeighbour, Chunk* rightNeighbour, Chunk* backNeighbour, Chunk* frontNeighbour)
+void UpdateGpuMemory(DeviceResources* device, Chunk* chunk, Chunk* leftNeighbour, 
+                            Chunk* rightNeighbour, Chunk* backNeighbour, Chunk* frontNeighbour)
 {
 
     //create index buffer
@@ -332,9 +322,19 @@ void UpdateGpuMemory(Chunk* chunk, Chunk* leftNeighbour, Chunk* rightNeighbour, 
             }
         }
     }
+    device->CreateUploadBuffer(&chunk->memoryForBlocksIndecies, storedBlockIndicies * sizeof(unsigned int));
+
+    D3D12_RANGE readRange{ 0,0 };
+    chunk->memoryForBlocksIndecies->Map(0, &readRange, &chunk->indexMap);
+    chunk->cbuffer->Map(0, &readRange, &chunk->cbufferMap);
+
+    chunk->indexView.BufferLocation = chunk->memoryForBlocksIndecies->GetGPUVirtualAddress();
+    chunk->indexView.Format = DXGI_FORMAT_R32_UINT;
     chunk->indexCount = storedBlockIndicies;
     chunk->indexView.SizeInBytes = storedBlockIndicies * sizeof(unsigned int);
+
     memcpy(chunk->indexMap, cube_indicies, chunk->indexView.SizeInBytes);
+    chunk->drawable = true;
     delete[] cube_indicies;
 }
 
