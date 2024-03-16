@@ -14,7 +14,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	ChunkRenderer renderer(window.GetWindowHWND());
 	ChunkGrid* grid = CreateChunkGrid(&renderer, 100, 100, 10, 10);
 
-	Camera* cam = CreateCamera(&renderer, { 0,0,0 }, { 0,0,1 }, { 0,1,0 });
+	Camera* cam = CreateCamera(&renderer, { 0,7,0 }, { 0,0,1 }, { 0,1,0 });
 	renderer.BindCamera(cam);
 
 	window.RegisterResizezable(&renderer, ChunkRenderer::Resize);

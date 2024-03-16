@@ -261,12 +261,6 @@ DWORD _stdcall AdditionalChunkGenerator(void * data)
     delete (ChunkGenerationStartData*)data;
     while (true)
     {
-        if (threadQueue.size() == 0)
-        {
-
-            continue;
-        }
-
         DWORD status = WaitForSingleObject(producerConsumerMutex, INFINITE);
         switch (status)
         {
@@ -276,6 +270,11 @@ DWORD _stdcall AdditionalChunkGenerator(void * data)
         case WAIT_FAILED:
             OutputDebugString(L"Mutex lock error for chunk generation\n");
             exit(GetLastError());
+        }
+        if (threadQueue.size() == 0)
+        {
+            ReleaseMutex(producerConsumerMutex);
+            continue;
         }
         ChunkGenerationInfo* chunkMetaData = threadQueue.front();
         threadQueue.pop();

@@ -48,7 +48,7 @@ struct Chunk
 	static ComPtr<ID3D12Resource> memoryForBlocksVertecies;
 	static DevicePointer vertexMap;
 
-	BlockType* blockGrid;
+	unsigned char* blockGrid;
 	ComPtr<ID3D12Resource> memoryForBlocksIndecies;
 	ComPtr<ID3D12Resource> cbuffer;
 	DevicePointer indexMap;

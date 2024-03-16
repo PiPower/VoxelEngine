@@ -130,7 +130,7 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
         newChunk->heightMap = vector<int>(BLOCK_COUNT_Z * BLOCK_COUNT_X, BLOCK_COUNT_Y);
     }
 
-    newChunk->blockGrid = new BlockType[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z];
+    newChunk->blockGrid = new unsigned char[BLOCK_COUNT_X * BLOCK_COUNT_Y * BLOCK_COUNT_Z];
     for (int z = 0; z < BLOCK_COUNT_Z; z++)
     {
         for (int y = 0; y < BLOCK_COUNT_Y; y++)
@@ -141,11 +141,11 @@ Chunk* CreateChunk(DeviceResources* device, int x_grid_coord, int z_grid_coord, 
                 int airLevel = newChunk->heightMap[z * BLOCK_COUNT_X + x];
                 if (y < airLevel)
                 {
-                    newChunk->blockGrid[index] = BlockType::air;
+                    newChunk->blockGrid[index] = (unsigned char) BlockType::air;
                 }
                 else
                 {
-                   newChunk->blockGrid[index] = BlockType::grass;
+                   newChunk->blockGrid[index] = (unsigned char)BlockType::grass;
                 }
             }
         }
@@ -208,7 +208,7 @@ BlockType GetBlockType(Chunk* chunk, unsigned int x, unsigned int y, unsigned in
 {
     if (chunk == nullptr) return BlockType::grass;//to show world edges change to air
     
-    return chunk->blockGrid[z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x];
+    return (BlockType)chunk->blockGrid[z * BLOCK_COUNT_Y * BLOCK_COUNT_X + y * BLOCK_COUNT_X + x];
 }
 
 void UpdateGpuMemory(DeviceResources* device, Chunk* chunk, Chunk* leftNeighbour, 
