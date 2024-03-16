@@ -66,16 +66,17 @@ void ChunkRenderer::DrawChunk(Chunk* chunk)
 	CommandList->DrawIndexedInstanced(chunk->indexCount, 1, 0, 0, 0);
 }
 
-void ChunkRenderer::DrawGridOfChunks(ChunkGrid* grid)
+void ChunkRenderer::DrawGridOfChunks(ChunkGrid* grid, Camera* cam)
 {
 	CommandList->IASetVertexBuffers(0, 1, &grid->gridOfChunks[0]->vertexView);
-	for (int i = 0; i < grid->totalChunks; i++)
+	for (int i = 0; i < grid->totalRenderableChunks; i++)
 	{
-		if (!IsInFrustum(&grid->gridOfChunks[i]->boundingVolume, this->camera)) { continue; }
+		Chunk* chunk = GetNthRenderableChunkFromCameraPos(grid, 0, 0, i);
+		if (!IsInFrustum(&chunk->boundingVolume, this->camera)) { continue; }
 
-		CommandList->IASetIndexBuffer(&grid->gridOfChunks[i]->indexView);
-		CommandList->SetGraphicsRootConstantBufferView(1, grid->gridOfChunks[i]->cbuffer->GetGPUVirtualAddress());
-		CommandList->DrawIndexedInstanced(grid->gridOfChunks[i]->indexCount, 1, 0, 0, 0);
+		CommandList->IASetIndexBuffer(&chunk->indexView);
+		CommandList->SetGraphicsRootConstantBufferView(1, chunk->cbuffer->GetGPUVirtualAddress());
+		CommandList->DrawIndexedInstanced(chunk->indexCount, 1, 0, 0, 0);
 	}
 }
 

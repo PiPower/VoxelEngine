@@ -125,6 +125,7 @@ struct ThreadData
     DeviceResources* device;
     ChunkGrid* grid;
 };
+
 DWORD _stdcall ThreadCreateChunks(void* threadDataVoid)
 {
 
@@ -155,11 +156,11 @@ DWORD _stdcall ThreadCreateChunks(void* threadDataVoid)
         for (int x = threadData->startX; x <= threadData->limitX; x += threadData->threadCount)
         {
             int gridIndex = (z + (int)threadData->Z_halfWidth) * (X_halfWidth * 2 + 1) + (x + (int)X_halfWidth);
-            Chunk* leftNeighbour = x > -(int)X_halfWidth ? grid->gridOfChunks[gridIndex - 1] : nullptr;
-            Chunk* rightNeighbour = x < (int)X_halfWidth ? grid->gridOfChunks[gridIndex + 1] : nullptr;
+            Chunk* leftNeighbour = x > threadData->startX ? grid->gridOfChunks[gridIndex - 1] : nullptr;
+            Chunk* rightNeighbour = x < threadData->limitX ? grid->gridOfChunks[gridIndex + 1] : nullptr;
 
-            Chunk* frontNeighbour = z > -(int)Z_halfWidth ? grid->gridOfChunks[gridIndex - (X_halfWidth * 2 + 1)] : nullptr;
-            Chunk* backNeighbour = z < (int)Z_halfWidth ? grid->gridOfChunks[gridIndex + (X_halfWidth * 2 + 1)] : nullptr;
+            Chunk* frontNeighbour = z > threadData->startZ ? grid->gridOfChunks[gridIndex - (X_halfWidth * 2 + 1)] : nullptr;
+            Chunk* backNeighbour = z < threadData->limitZ ? grid->gridOfChunks[gridIndex + (X_halfWidth * 2 + 1)] : nullptr;
 
             UpdateGpuMemory(grid->gridOfChunks[gridIndex], leftNeighbour, rightNeighbour, backNeighbour, frontNeighbour);
         }
@@ -170,7 +171,8 @@ DWORD _stdcall ThreadCreateChunks(void* threadDataVoid)
 
 
 //blocks are stored in form back-front, left-right
-ChunkGrid* CreateChunkGrid(DeviceResources* device, unsigned int X_halfWidth, unsigned int Z_halfWidth)
+ChunkGrid* CreateChunkGrid(DeviceResources* device, 
+    unsigned int X_halfWidth, unsigned int Z_halfWidth, unsigned int X_halfWidthRender, unsigned int Z_halfWidthRender)
 {
     InitMultithreadingResources();
     InitializeSynchronizationBarrier(&cpuBarrier, THREAD_COUNT, 2000);
@@ -179,17 +181,23 @@ ChunkGrid* CreateChunkGrid(DeviceResources* device, unsigned int X_halfWidth, un
     grid->X_halfWidth = X_halfWidth;
     grid->Z_halfWidth = Z_halfWidth;
     grid->totalChunks = (X_halfWidth * 2 + 1) * (2 * Z_halfWidth + 1);
+    grid->X_halfWidthRender = X_halfWidthRender;
+    grid->Z_halfWidthRender = Z_halfWidthRender;
+    grid->totalRenderableChunks = (X_halfWidthRender * 2 + 1) * (2 * Z_halfWidthRender + 1);
+
     grid->gridOfChunks = new Chunk*[grid->totalChunks];
+    memset(grid->gridOfChunks, 0, sizeof(Chunk*) * grid->totalChunks);
+
 
     HANDLE threadHandles[THREAD_COUNT];
     for (int threadId = 0; threadId < THREAD_COUNT; threadId++)
     {
         ThreadData* perThreadData = new ThreadData;
         perThreadData->threadCount = THREAD_COUNT;
-        perThreadData->startX = threadId - (int)X_halfWidth;
-        perThreadData->startZ = -(int)Z_halfWidth;
-        perThreadData->limitX = (int)X_halfWidth;
-        perThreadData->limitZ = (int)Z_halfWidth;
+        perThreadData->startX = threadId - (int)X_halfWidthRender;
+        perThreadData->startZ = -(int)Z_halfWidthRender;
+        perThreadData->limitX = (int)Z_halfWidthRender;
+        perThreadData->limitZ = (int)X_halfWidthRender;
         perThreadData->X_halfWidth = X_halfWidth;
         perThreadData->Z_halfWidth = Z_halfWidth;
         perThreadData->device = device;
@@ -201,4 +209,20 @@ ChunkGrid* CreateChunkGrid(DeviceResources* device, unsigned int X_halfWidth, un
     WaitForMultipleObjects(THREAD_COUNT, threadHandles, true, INFINITE);
 
     return grid;
+}
+
+Chunk* GetNthRenderableChunkFromCameraPos(ChunkGrid* chunkGrid, float posX, float posZ, unsigned int index)
+{
+    int centerX = floor((posX - x_coord_start) / (2 * abs(x_coord_start) ));
+    int centerZ = floor((posZ - z_coord_start) / (2 * abs(z_coord_start) ));
+
+    int leftCorner = centerX - (int)chunkGrid->X_halfWidthRender;
+    int topCorner = centerZ - (int)chunkGrid->Z_halfWidthRender;
+
+    int rowOffset = (float)index / (chunkGrid->X_halfWidthRender * 2 + 1);
+    int xOffset = index - rowOffset * (chunkGrid->X_halfWidthRender * 2 + 1);
+
+    unsigned int chunkIndex = (topCorner + rowOffset + (int)chunkGrid->Z_halfWidth) *
+                (chunkGrid->X_halfWidth * 2 + 1) + (leftCorner + xOffset + (int)chunkGrid->X_halfWidth);
+    return chunkGrid->gridOfChunks[chunkIndex];
 }

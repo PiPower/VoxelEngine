@@ -21,10 +21,6 @@ y=0 means is top of the chunk
 #define BOTTOM_S 0 
 #define BOTTOM_E (1.0f/3.0f)
 
-constexpr float x_coord_start = -1.0f;
-constexpr float y_coord_start = (float)BLOCK_COUNT_Y / BLOCK_COUNT_X;
-constexpr float z_coord_start = -(float)BLOCK_COUNT_Z / BLOCK_COUNT_X;
-
 volatile bool Chunk::isVertexBufferInitialized = false;
 ComPtr<ID3D12Resource> Chunk::memoryForBlocksVertecies;
 D3D12_VERTEX_BUFFER_VIEW Chunk::vertexView = {};

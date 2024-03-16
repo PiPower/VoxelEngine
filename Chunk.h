@@ -9,6 +9,10 @@
 
 #define VERTECIES_PER_CUBE 36
 #define INDECIES_PER_CUBE 36
+#define x_coord_start  -1.0f
+#define y_coord_start  ( (float)BLOCK_COUNT_Y / BLOCK_COUNT_X )
+#define z_coord_start  ( -(float)BLOCK_COUNT_Z / BLOCK_COUNT_X )
+
 using namespace  Microsoft::WRL;
 enum class BlockType
 {

@@ -9,7 +9,7 @@ public:
 	void BindCamera(const Camera* camera);
 	void StartRecording();
 	void DrawChunk(Chunk* chunk);
-	void DrawGridOfChunks(ChunkGrid* grid);
+	void DrawGridOfChunks(ChunkGrid* grid, Camera* cam);
 	void StopRecording();
 	static void Resize(HWND hwnd, void* renderer);
 protected:
