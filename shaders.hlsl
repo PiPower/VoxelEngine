@@ -81,7 +81,17 @@ static float2 thirdVertexText[] =
     float2(BACK_S, 1), //back face
 };
 
-Vout VS(Vin vin)
+static float2 texCoordForBox[] =
+{
+    float2(0, 0),
+    float2(1, 0),
+    float2(0, 1),
+    float2(1, 0),
+    float2(1, 1),
+    float2(0, 1)
+};
+
+Vout VS(Vin vin, uint vertexID : SV_VertexID)
 {    
     Vout vout;
     vin.pos = vin.pos + float3(chunkOffset.x, 0, chunkOffset.y);

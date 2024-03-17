@@ -18,5 +18,5 @@ ChunkGrid* CreateChunkGrid(DeviceResources* device,
 
 Chunk* GetNthRenderableChunkFromCameraPos(ChunkGrid* chunkGrid, float posX, float posZ, unsigned int index);
 XMINT2 GetGridCoordsFromRenderingChunkIndex(ChunkGrid* chunkGrid, float posX, float posZ, unsigned int index);
-
 void GenerateChunk(DeviceResources* device, ChunkGrid* chunkGrid, int chunkPosX, int chunkPosZ);
+XMINT2 GetCameraPosInGrid(float x, float z);

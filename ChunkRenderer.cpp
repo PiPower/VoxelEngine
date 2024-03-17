@@ -73,6 +73,12 @@ void ChunkRenderer::DrawGridOfChunks(ChunkGrid* grid, Camera* cam)
 	{
 		Chunk* chunk = GetNthRenderableChunkFromCameraPos(grid, cam->eyePos.x, cam->eyePos.z, i);
 
+		if (chunk == reinterpret_cast<Chunk*>(0xFFFFFFFFFFFFFFFF))
+		{
+			// this prevents rendering out of world edge
+			continue;
+		}
+
 		if (chunk==nullptr)
 		{
 			XMINT2 chunkPos = GetGridCoordsFromRenderingChunkIndex(grid, cam->eyePos.x, cam->eyePos.z, i);

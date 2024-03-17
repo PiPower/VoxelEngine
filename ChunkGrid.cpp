@@ -227,6 +227,11 @@ Chunk* GetNthRenderableChunkFromCameraPos(ChunkGrid* chunkGrid, float posX, floa
 {
     XMINT2 chunkPos = GetGridCoordsFromRenderingChunkIndex(chunkGrid, posX, posZ, index);
 
+    if (abs(chunkPos.x) > chunkGrid->X_halfWidth || abs(chunkPos.y) > chunkGrid->Z_halfWidth)
+    {
+        return reinterpret_cast<Chunk*>( 0xFFFFFFFFFFFFFFFF);
+    }
+
     unsigned int chunkIndex = (chunkPos.y + (int)chunkGrid->Z_halfWidth) *
                 (chunkGrid->X_halfWidth * 2 + 1) + (chunkPos.x + (int)chunkGrid->X_halfWidth);
 
@@ -343,6 +348,13 @@ void GenerateChunk(DeviceResources* device,ChunkGrid* chunkGrid, int chunkPosX, 
     }
     threadQueue.push(chunkData);
     ReleaseMutex(producerConsumerMutex);
+}
+
+XMINT2 GetCameraPosInGrid(float x, float z)
+{
+    int centerX = floor((x - x_coord_start) / (2 * abs(x_coord_start)));
+    int centerZ = floor((z - z_coord_start) / (2 * abs(z_coord_start)));
+    return XMINT2(centerX, centerZ);
 }
 
 
