@@ -1,6 +1,6 @@
 #include "ChunkGrid.h"
 #include <random>
-
+#include "Noise.h"
 #define THREAD_COUNT 4
 SYNCHRONIZATION_BARRIER cpuBarrier;
 HANDLE threadGeneratingChunks;
@@ -29,88 +29,31 @@ struct ChunkGenerationInfo
     int posZ;
 };
 
-struct Vector2D
+float clip(float x, float min, float max)
 {
-    float x, y;
-};
-
-float interpolate(float a0, float a1, float w) {
-    return (a1 - a0) * ((w * (w * 6.0 - 15.0) + 10.0) * w * w * w) + a0;
+    if (x < min) { return min; }
+    if (x > max) { return max; }
+    return x;
 }
 
-Vector2D randomGradient(int ix, int iy)
+
+int clip(int x, int min, int max)
 {
-    // No precomputed gradients mean this works for any number of grid coordinates
-    const unsigned w = 8 * sizeof(unsigned);
-    const unsigned s = w / 2;
-    unsigned a = ix, b = iy;
-    a *= 3284157443;
-
-    b ^= a << s | a >> w - s;
-    b *= 1911520717;
-
-    a ^= b << s | b >> w - s;
-    a *= 2048419325;
-    float random = a * (3.14159265 / ~(~0u >> 1)); // in [0, 2*Pi]
-
-    // Create the vector from the angle
-    Vector2D v;
-    v.x = sin(random);
-    v.y = cos(random);
-
-    return v;
+    if (x < min) { return min; }
+    if (x > max) { return max; }
+    return x;
 }
 
-Vector2D* generateNoiseVec(unsigned int x_size, unsigned int y_size)
-{
-    // Seed with a real random value, if available
-    std::random_device r;
-
-    // Choose a random mean between 1 and 6
-    std::default_random_engine e1(r());
-    std::uniform_real_distribution<float> uniform_dist(-1, 1);
-    Vector2D* grid = new Vector2D[x_size * y_size];
-    for (int i = 0; i < x_size * y_size; i++)
-    {
-        grid[i].x = uniform_dist(e1);
-        grid[i].y = uniform_dist(e1);
-        float norm = sqrt(pow(grid[i].x, 2) + pow(grid[i].y, 2));
-        grid[i].x = grid[i].x / norm;
-        grid[i].y = grid[i].y / norm;
-    }
-    return grid;
-}
-
-float perlinStep(float grid_x, float grid_z)
-{
-
-    int x_0 = floor(grid_x);
-    int x_1 = x_0 + 1;
-    int z_0 = floor(grid_z);
-    int z_1 = z_0 + 1;
-
-    Vector2D gradient = randomGradient(x_0, z_0); //&vectorGrid[z_0 * x_size + x_0];
-    Vector2D gradient2 = randomGradient(x_1, z_0);//&vectorGrid[z_0 * x_size + x_1];
-
-    Vector2D gradient3 = randomGradient(x_0, z_1); //&vectorGrid[z_1 * x_size + x_0];
-    Vector2D gradient4 = randomGradient(x_1, z_1);//&vectorGrid[z_1 * x_size + x_1];
-
-    float n_0 = (grid_x - x_0) * gradient.x + (grid_z - z_0) * gradient.y;
-    float n_1 = (grid_x - x_1) * gradient2.x + (grid_z - z_0) * gradient2.y;
-    float interpoland_1 = interpolate(n_0, n_1, grid_x - (float)x_0);
-
-    n_0 = (grid_x - x_0) * gradient3.x + (grid_z - z_1) * gradient3.y;
-    n_1 = (grid_x - x_1) * gradient4.x + (grid_z - z_1) * gradient4.y;
-    float interpoland_2 = interpolate(n_0, n_1, grid_x - (float)x_0);
-
-    float value = interpolate(interpoland_1, interpoland_2, grid_z - (float)z_0);
-    return value;
-}
 std::vector<int> GetHeightLevelsForChunk(unsigned int x_coord, unsigned int z_coord, 
                                     unsigned int x_size, unsigned int z_size)
 {
     std::vector<int> out;
 
+    static std::random_device r;
+    static std::default_random_engine e1(r());
+    static std::uniform_int_distribution<int> dist(40, BLOCK_COUNT_Y);
+
+    int scal = dist(e1);
     for (int z = 0; z < BLOCK_COUNT_Z; z++)
     {
         for (int x = 0; x < BLOCK_COUNT_X; x++)
@@ -123,15 +66,18 @@ std::vector<int> GetHeightLevelsForChunk(unsigned int x_coord, unsigned int z_co
             float amp = 1;
             for (int i = 0; i < 12; i++)
             {
-                value += perlinStep(grid_x * (freq / BLOCK_COUNT_X), grid_z * (freq/ BLOCK_COUNT_Z)) * amp;
-
+                float x_in = grid_x * (freq / BLOCK_COUNT_X);
+                float z_in = grid_z * (freq / BLOCK_COUNT_Z);
+                value += gnoise(x_in, z_in, x_in + z_in) * amp;
+                value += gnoise(z_in, x_in +z_in, x_in) * amp;
                 freq *= 2;
-                amp /= 2;
+                amp *= 0.5;
             }
+            value = clip(value, -1.0f, 1.0f);
 
-            if (value > 1.0f) value = 1.0f;
-            if (value < -1.0f) value = -1.0f;
-            out.push_back(BLOCK_COUNT_Y * (value + 1.0f) / 2.0f);
+            int target = BLOCK_COUNT_Y * (value + 1.0f) / 2.0f;
+
+            out.push_back(clip(target, 1, BLOCK_COUNT_Y - 1) );
         }
     }
     return out;

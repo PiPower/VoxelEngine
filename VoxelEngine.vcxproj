@@ -136,6 +136,7 @@
     <ClCompile Include="DeviceResources.cpp" />
     <ClCompile Include="ImageFile.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Noise.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -146,6 +147,7 @@
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DeviceResources.h" />
     <ClInclude Include="ImageFile.h" />
+    <ClInclude Include="Noise.h" />
     <ClInclude Include="window.h" />
   </ItemGroup>
   <ItemGroup>

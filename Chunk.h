@@ -4,8 +4,9 @@
 #pragma once
 #include <directxcollision.h>
 #define BLOCK_COUNT_X 16
-#define BLOCK_COUNT_Y 178
+#define BLOCK_COUNT_Y 176
 #define BLOCK_COUNT_Z 16
+#define CHUNK_PLANE  (BLOCK_COUNT_Y/2)
 
 #define VERTECIES_PER_CUBE 36
 #define INDECIES_PER_CUBE 36
