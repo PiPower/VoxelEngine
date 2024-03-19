@@ -34,7 +34,6 @@ void processUserInput(Camera* cam, Window* window)
 {
 	constexpr float rot_tempo = 0.02;
 	float x = 0, y = 0, z = 0, delta_x = 0, delta_y = 0;
-	float delta_sigma = 0, delta_ro = 0, delta_beta = 0;
 	static bool left_pressed = false;
 	static int mouse_x, mouse_y;
 
@@ -44,9 +43,11 @@ void processUserInput(Camera* cam, Window* window)
 	if (window->IsKeyPressed('A')) x -= 0.03;
 	if (window->IsKeyPressed(32)) y += 0.03;
 	if (window->IsKeyPressed(17)) y -= 0.03;
-	if (window->IsKeyPressed('Z')) delta_sigma = 0.04;
-	if (window->IsKeyPressed('X')) delta_ro = 0.04;
-	if (window->IsKeyPressed('C')) delta_beta = 0.04;
+	if (window->IsKeyPressed('Z'))
+	{
+		z += 1.0;
+		x -= 1.0;
+	}
 	if (window->IsLeftPressed())
 	{
 		if (!left_pressed)

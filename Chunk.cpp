@@ -334,8 +334,8 @@ void UpdateGpuMemory(DeviceResources* device, Chunk* chunk, Chunk* leftNeighbour
     chunk->indexView.SizeInBytes = storedBlockIndicies * sizeof(unsigned int);
 
     memcpy(chunk->indexMap, cube_indicies, chunk->indexView.SizeInBytes);
-    chunk->drawable = true;
     delete[] cube_indicies;
+    //chunk->drawable = true;
 }
 
 void InitMultithreadingResources()

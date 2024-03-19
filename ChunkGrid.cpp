@@ -120,6 +120,7 @@ DWORD _stdcall ThreadCreateChunks(void* threadDataVoid)
             Chunk* backNeighbour = z < threadData->limitZ ? grid->gridOfChunks[gridIndex + (X_halfWidth * 2 + 1)] : nullptr;
 
             UpdateGpuMemory(threadData->device, grid->gridOfChunks[gridIndex], leftNeighbour, rightNeighbour, backNeighbour, frontNeighbour);
+            grid->gridOfChunks[gridIndex]->drawable = true;
         }
     }
 
@@ -186,17 +187,18 @@ Chunk* GetNthRenderableChunkFromCameraPos(ChunkGrid* chunkGrid, float posX, floa
 
 XMINT2 GetGridCoordsFromRenderingChunkIndex(ChunkGrid* chunkGrid, float posX, float posZ, unsigned int index)
 {
-    int centerX = floor((posX - x_coord_start) / (2 * abs(x_coord_start)));
-    int centerZ = floor((posZ - z_coord_start) / (2 * abs(z_coord_start)));
+    int chunkX = floor((posX - x_coord_start) / (2 * abs(x_coord_start)));
+    int chunkZ = floor((posZ - z_coord_start) / (2 * abs(z_coord_start)));
 
-    int leftCorner = centerX - (int)chunkGrid->X_halfWidthRender;
-    int topCorner = centerZ - (int)chunkGrid->Z_halfWidthRender;
+    int leftCorner = chunkX - (int)chunkGrid->X_halfWidthRender;
+    int bottomCorner = chunkZ - (int)chunkGrid->Z_halfWidthRender;
 
     int rowOffset = (float)index / (chunkGrid->X_halfWidthRender * 2 + 1);
     int xOffset = index - rowOffset * (chunkGrid->X_halfWidthRender * 2 + 1);
+
     XMINT2 out;
     out.x = leftCorner + xOffset;
-    out.y = topCorner + rowOffset;
+    out.y = bottomCorner + rowOffset;
     return out;
 }
 
@@ -238,26 +240,32 @@ DWORD _stdcall AdditionalChunkGenerator(void * data)
         unsigned int chunkIndex = (chunkPosZ + (int)chunkGrid->Z_halfWidth) *
             (chunkGrid->X_halfWidth * 2 + 1) + (chunkPosX + (int)chunkGrid->X_halfWidth);
 
-        if (chunkGrid->gridOfChunks[chunkIndex] != nullptr)
+        if (chunkGrid->gridOfChunks[chunkIndex] != nullptr && chunkGrid->gridOfChunks[chunkIndex]->drawable)
         {
             continue;
         }
 
         std::vector<int> heightLevels = GetHeightLevelsForChunk(chunkPosX + (int)chunkGrid->X_halfWidth,
             chunkPosZ + (int)chunkGrid->Z_halfWidth, chunkGrid->X_halfWidth * 2 + 1, 2 * chunkGrid->Z_halfWidth + 1);
-        chunkGrid->gridOfChunks[chunkIndex] = CreateChunk(device, chunkPosX, chunkPosZ, heightLevels);
 
+        if (chunkGrid->gridOfChunks[chunkIndex] == nullptr)
+        {
+            // 1st stage create chunk
+            chunkGrid->gridOfChunks[chunkIndex] = CreateChunk(device, chunkPosX, chunkPosZ, heightLevels);
+            continue;
+        }
+        //2nd stage build its index buffer to be rendered
         Chunk* leftNeighbour = chunkPosX > -(int)chunkGrid->X_halfWidth ? chunkGrid->gridOfChunks[chunkIndex - 1] : nullptr;
-        Chunk* rightNeighbour = chunkPosX < chunkGrid->X_halfWidth ? chunkGrid->gridOfChunks[chunkIndex + 1] : nullptr;
+        Chunk* rightNeighbour = chunkPosX < (int)chunkGrid->X_halfWidth ? chunkGrid->gridOfChunks[chunkIndex + 1] : nullptr;
 
         Chunk* frontNeighbour = chunkPosZ > -(int)chunkGrid->Z_halfWidth ?
             chunkGrid->gridOfChunks[chunkIndex - (chunkGrid->X_halfWidth * 2 + 1)] : nullptr;
 
-        Chunk* backNeighbour = chunkPosZ < chunkGrid->Z_halfWidth ?
+        Chunk* backNeighbour = chunkPosZ < (int)chunkGrid->Z_halfWidth ?
             chunkGrid->gridOfChunks[chunkIndex + (chunkGrid->X_halfWidth * 2 + 1)] : nullptr;
 
         UpdateGpuMemory(device, chunkGrid->gridOfChunks[chunkIndex], leftNeighbour, rightNeighbour, backNeighbour, frontNeighbour);
-
+        chunkGrid->gridOfChunks[chunkIndex]->drawable = true;
     }
 
     return TRUE;
@@ -274,13 +282,22 @@ void GenerateChunk(DeviceResources* device,ChunkGrid* chunkGrid, int chunkPosX, 
 
         producerConsumerMutex = CreateMutex(NULL, FALSE, NULL);
         threadGeneratingChunks = CreateThread(NULL, 0, AdditionalChunkGenerator, startData, 0, NULL);
-        WaitForSingleObject(threadGeneratingChunks, 0);
+        WaitForSingleObject(threadGeneratingChunks, 0.02);
 
     }
+
+    unsigned int chunkIndex = (chunkPosZ + (int)chunkGrid->Z_halfWidth) *
+        (chunkGrid->X_halfWidth * 2 + 1) + (chunkPosX + (int)chunkGrid->X_halfWidth);
 
     ChunkGenerationInfo* chunkData = new ChunkGenerationInfo();
     chunkData->posX = chunkPosX;
     chunkData->posZ = chunkPosZ;
+
+    if (chunkGrid->gridOfChunks[chunkIndex] != nullptr && chunkGrid->gridOfChunks[chunkIndex]->drawable)
+    {
+        return;
+    }
+
 
     DWORD status = WaitForSingleObject(producerConsumerMutex, INFINITE);
     switch (status)
@@ -296,11 +313,32 @@ void GenerateChunk(DeviceResources* device,ChunkGrid* chunkGrid, int chunkPosX, 
     ReleaseMutex(producerConsumerMutex);
 }
 
+
+
+
 XMINT2 GetCameraPosInGrid(float x, float z)
 {
     int centerX = floor((x - x_coord_start) / (2 * abs(x_coord_start)));
     int centerZ = floor((z - z_coord_start) / (2 * abs(z_coord_start)));
+
+    float yolo = (x - x_coord_start) / (2 * abs(x_coord_start));
+
     return XMINT2(centerX, centerZ);
+}
+
+bool IsInBorder(ChunkGrid* chunkGrid, unsigned int index)
+{
+
+    int rowOffset = (float)index / (chunkGrid->X_halfWidthRender * 2 + 1);
+    int xOffset = index - rowOffset * (chunkGrid->X_halfWidthRender * 2 + 1);
+
+    if ( (rowOffset == 0 || rowOffset == chunkGrid->Z_halfWidthRender * 2)
+        &&
+        (xOffset == 0 || xOffset == chunkGrid->X_halfWidthRender * 2) )
+    {
+        return true;
+    }
+    return false;
 }
 
 

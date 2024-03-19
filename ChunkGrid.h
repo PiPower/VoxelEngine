@@ -20,3 +20,4 @@ Chunk* GetNthRenderableChunkFromCameraPos(ChunkGrid* chunkGrid, float posX, floa
 XMINT2 GetGridCoordsFromRenderingChunkIndex(ChunkGrid* chunkGrid, float posX, float posZ, unsigned int index);
 void GenerateChunk(DeviceResources* device, ChunkGrid* chunkGrid, int chunkPosX, int chunkPosZ);
 XMINT2 GetCameraPosInGrid(float x, float z);
+bool IsInBorder(ChunkGrid* chunkGrid, unsigned int index);

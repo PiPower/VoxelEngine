@@ -69,6 +69,8 @@ void ChunkRenderer::DrawChunk(Chunk* chunk)
 void ChunkRenderer::DrawGridOfChunks(ChunkGrid* grid, Camera* cam)
 {
 	CommandList->IASetVertexBuffers(0, 1, &grid->gridOfChunks[0]->vertexView);
+	static XMINT2 prevPos;
+
 	for (int i = 0; i < grid->totalRenderableChunks; i++)
 	{
 		Chunk* chunk = GetNthRenderableChunkFromCameraPos(grid, cam->eyePos.x, cam->eyePos.z, i);
@@ -85,14 +87,24 @@ void ChunkRenderer::DrawGridOfChunks(ChunkGrid* grid, Camera* cam)
 			GenerateChunk(this, grid, chunkPos.x, chunkPos.y);
 			continue;
 		}
+		else if(chunk != nullptr && !chunk->drawable && !IsInBorder(grid, i) )
+		{
+ 			XMINT2 chunkPos = GetGridCoordsFromRenderingChunkIndex(grid, cam->eyePos.x, cam->eyePos.z, i);
+			GenerateChunk(this, grid, chunkPos.x, chunkPos.y);
+			continue;
+		}
 
-
-		if (!chunk->drawable || !IsInFrustum(&chunk->boundingVolume, this->camera)) { continue; }
+		if (!chunk->drawable || !IsInFrustum(&chunk->boundingVolume, this->camera))
+		{ 
+			continue;
+		}
 
 		CommandList->IASetIndexBuffer(&chunk->indexView);
 		CommandList->SetGraphicsRootConstantBufferView(1, chunk->cbuffer->GetGPUVirtualAddress());
 		CommandList->DrawIndexedInstanced(chunk->indexCount, 1, 0, 0, 0);
 	}
+
+	prevPos = GetCameraPosInGrid(cam->eyePos.x, cam->eyePos.z);
 }
 
 void ChunkRenderer::StopRecording()
