@@ -7,12 +7,12 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 {
 
 #if defined(_DEBUG)
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
 	Window window(1600, 900, L"test", L"Voxel world");
 	ChunkRenderer renderer(window.GetWindowHWND());
-	ChunkGrid* grid = CreateChunkGrid(&renderer, 100, 100, 10, 10);
+	ChunkGrid* grid = CreateChunkGrid(&renderer, 100, 100, 16, 16);
 
 	Camera* cam = CreateCamera(&renderer, { 0,7,0 }, { 0,0,1 }, { 0,1,0 });
 	renderer.BindCamera(cam);
@@ -43,11 +43,6 @@ void processUserInput(Camera* cam, Window* window)
 	if (window->IsKeyPressed('A')) x -= 0.03;
 	if (window->IsKeyPressed(32)) y += 0.03;
 	if (window->IsKeyPressed(17)) y -= 0.03;
-	if (window->IsKeyPressed('Z'))
-	{
-		z += 1.0;
-		x -= 1.0;
-	}
 	if (window->IsLeftPressed())
 	{
 		if (!left_pressed)
