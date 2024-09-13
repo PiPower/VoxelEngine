@@ -5,9 +5,11 @@
 struct ChunkGrid
 {
 	Chunk** gridOfChunks;
+	//half of the total number of chunks (exluding 0) in x and z direction
 	unsigned int X_halfWidth;
 	unsigned int Z_halfWidth;
 	unsigned int totalChunks;
+	//half of the total number of renderable chunks (exluding 0) in x and z direction
 	unsigned int X_halfWidthRender;
 	unsigned int Z_halfWidthRender;
 	unsigned int totalRenderableChunks;

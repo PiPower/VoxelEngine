@@ -103,6 +103,6 @@ Vout VS(Vin vin, uint vertexID : SV_VertexID)
 
 
 float4 PS(Vout vin) : SV_Target
-{
+{  
     return tex.Sample(samplerWrap, vin.texCoord);
 }

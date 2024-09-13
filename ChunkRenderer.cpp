@@ -213,7 +213,7 @@ void ChunkRenderer::CreateLocalPipeline()
 void ChunkRenderer::CreateTexture(ID3D12Resource** uploadBuffer)
 {
 	ImageFile image(L"./texture.png");
-	CreateTexture2D(&texture, image.GetWidth(), image.GetHeight(), 1, D3D12_RESOURCE_FLAG_NONE, DXGI_FORMAT_R8G8B8A8_UNORM);
+	CreateTexture2D(&texture, image.GetWidth(), image.GetHeight(), 1, D3D12_RESOURCE_FLAG_NONE, DXGI_FORMAT_R16G16B16A16_UNORM);
 	CreateTextureDH(&textureHeap,1, texture.GetAddressOf());
 
 	UINT64 bufferSize;
@@ -230,14 +230,16 @@ void ChunkRenderer::CreateTexture(ID3D12Resource** uploadBuffer)
 	{
 		for (int x = 0; x < image.GetWidth(); x++)
 		{
-			int index = y * bufferLocation.PlacedFootprint.Footprint.RowPitch + x * 4;
+			int index = y * bufferLocation.PlacedFootprint.Footprint.RowPitch + x * 4 * 2;
 			unsigned int colorData = image.GetColorAt(x, y);
-			memcpy(TextureData + index, &colorData, sizeof(unsigned int));
+			//memcpy(TextureData + index, &colorData, sizeof(unsigned int));
 			//data format BGRA
-			//TextureData[index + 0] = (unsigned char) ((colorData >> 16 ) & 0xFF); 
-			//TextureData[index + 1] = (unsigned char)((colorData >> 8) & 0xFF);
-			//TextureData[index + 2] = (unsigned char)((colorData >> 0) & 0xFF);
-			//TextureData[index + 3] = (unsigned char)((colorData >> 24) & 0xFF);
+			uint16_t* currentPixelData = (uint16_t*)(&TextureData[index + 0]);
+			uint16_t mask = 0xFFFF / 0xFF;
+			currentPixelData[0] = (uint16_t) ((colorData >> 0 ) & 0xFF) * 256;
+			currentPixelData[1] = (uint16_t)((colorData >> 8) & 0xFF) * 256;
+			currentPixelData[2] = (uint16_t)((colorData >> 16) & 0xFF) * 256;
+			currentPixelData[3] = (uint16_t)((colorData >> 24) & 0xFF) * 256;
 		}
 	}
 

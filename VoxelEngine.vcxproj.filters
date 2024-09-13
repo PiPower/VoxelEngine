@@ -75,5 +75,6 @@
     <None Include="shaders.hlsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="README.md" />
   </ItemGroup>
 </Project>
